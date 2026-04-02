@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statistiques - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    main { display: block !important; }
+
+    /* ── Navigation période ── */
+    .periode-nav {
+      display: flex; align-items: center; justify-content: center;
+      gap: 12px; margin-bottom: 8px;
+    }
+    .periode-titre {
+      font-size: 1.05rem; font-weight: 700; color: var(--text);
+      min-width: 140px; text-align: center; text-transform: capitalize;
+    }
+    .btn-periode {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 6px 14px; font-size: .88rem;
+      font-weight: 600; cursor: pointer; color: var(--text);
+      transition: background .15s, border-color .15s;
+    }
+    .btn-periode:hover { background: var(--border); border-color: var(--primary); }
+    .btn-periode:disabled { opacity: .3; cursor: not-allowed; }
+
+    /* ── Cards chiffres clés ── */
+    .stats-kpi {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 10px; margin-bottom: 28px;
+    }
+    .kpi-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 14px 10px;
+      text-align: center; box-shadow: var(--shadow);
+    }
+    .kpi-number { font-size: 1.8rem; font-weight: 700; line-height: 1; }
+    .kpi-label  { font-size: .72rem; color: var(--muted); margin-top: 4px; font-weight: 600; }
+    .kpi-card.orange .kpi-number { color: var(--primary); }
+    .kpi-card.green  .kpi-number { color: var(--accent); }
+    .kpi-card.red    .kpi-number { color: var(--danger); }
+    .kpi-card.blue   .kpi-number { color: #3478c8; }
+    .kpi-card.amber  .kpi-number { color: #8a5e00; }
+    .kpi-card.grey   .kpi-number { color: var(--muted); }
+
+    /* ── Section bloc graphique + tableau ── */
+    .stat-section {
+      margin-bottom: 32px;
+    }
+    .stat-section-title {
+      font-size: .78rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .8px; color: var(--muted);
+      margin-bottom: 14px; padding-left: 2px;
+    }
+    .stat-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media (max-width: 640px) {
+      .stat-row { grid-template-columns: 1fr; }
+    }
+
+    .stat-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      border: 1px solid var(--border); box-shadow: var(--shadow);
+      padding: 20px;
+    }
+    .stat-card-title {
+      font-size: .82rem; font-weight: 700; color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    /* ── Canvas chart ── */
+    .chart-wrap {
+      position: relative; height: 240px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── Tableau stats ── */
+    .stat-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    .stat-table th {
+      font-size: .7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted);
+      padding: 8px 10px; border-bottom: 2px solid var(--border); text-align: left;
+    }
+    .stat-table td { padding: 9px 10px; border-bottom: 1px solid var(--border); }
+    .stat-table tr:last-child td { border-bottom: none; }
+    .stat-table tr:hover td { background: rgba(0,0,0,.02); }
+    .stat-table .num { text-align: right; font-weight: 700; }
+
+    /* ── Podium ── */
+    .podium-wrap {
+      display: flex; align-items: flex-end; justify-content: center;
+      gap: 8px; padding: 16px 0 0; height: 240px;
+    }
+    .podium-item {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 6px; flex: 1; max-width: 100px;
+    }
+    .podium-medal { font-size: 1.4rem; }
+    .podium-name {
+      font-size: .72rem; font-weight: 700; color: var(--text);
+      text-align: center; line-height: 1.3;
+      word-break: break-word; max-width: 90px;
+    }
+    .podium-value {
+      font-size: .75rem; color: var(--muted); font-weight: 600;
+    }
+    .podium-block {
+      width: 100%; border-radius: 8px 8px 0 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .9rem; font-weight: 700; color: #fff;
+    }
+    .podium-item.rank-1 .podium-block { background: linear-gradient(135deg, #f6d365, #e8a000); min-height: 120px; }
+    .podium-item.rank-2 .podium-block { background: linear-gradient(135deg, #c0c0c0, #909090); min-height: 90px; }
+    .podium-item.rank-3 .podium-block { background: linear-gradient(135deg, #cd7f32, #a05a20); min-height: 65px; }
+    .podium-item.rank-4 .podium-block { background: var(--border); color: var(--muted); min-height: 44px; border-radius: 6px 6px 0 0; }
+    .podium-item.rank-5 .podium-block { background: var(--border); color: var(--muted); min-height: 44px; border-radius: 6px 6px 0 0; }
+    .podium-rank4-5 {
+      display: flex; gap: 8px; justify-content: center;
+      margin-top: 0; padding: 0 0 0;
+    }
+
+    /* ── Jours loués ── */
+    .jours-loues-wrap {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; height: 240px; gap: 12px;
+    }
+    .jours-loues-number {
+      font-size: 4rem; font-weight: 700; color: var(--primary); line-height: 1;
+    }
+    .jours-loues-label { font-size: .9rem; color: var(--muted); font-weight: 600; }
+    .jours-progress {
+      width: 100%; background: var(--border); border-radius: 99px;
+      height: 10px; overflow: hidden; margin-top: 8px;
+    }
+    .jours-progress-bar {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      transition: width .6s ease;
+    }
+    .jours-progress-label { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+
+    /* ── Séparateur de section ── */
+    .section-sep {
+      border: none; border-top: 1px solid var(--border); margin: 32px 0;
+    }
+
+    /* ── Onglets Année / Mois ── */
+    .tabs {
+      display: flex; gap: 4px; margin-bottom: 28px;
+      border-bottom: 2px solid var(--border);
+    }
+    .tab-btn {
+      padding: 10px 20px; font-size: .88rem; font-weight: 700;
+      cursor: pointer; border: none; background: none;
+      color: var(--muted); border-bottom: 2px solid transparent;
+      margin-bottom: -2px; transition: color .15s;
+    }
+    .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+    .tab-btn:hover { color: var(--primary); }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .empty-stats {
+      text-align: center; padding: 40px; color: var(--muted);
+      font-size: .88rem;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="../../Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Statistiques</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+    <div class="page-heading">
+      <div class="icon-wrap">📊</div>
+      <div>
+        <h1>Statistiques</h1>
+        <p>Suivi des locations et du matériel</p>
+      </div>
+    </div>
+
+    <!-- Onglets -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('annee', this)">📅 Vue annuelle</button>
+      <button class="tab-btn" onclick="switchTab('mois', this)">🗓️ Vue mensuelle</button>
+    </div>
+
+    <!-- ══ VUE ANNUELLE ══ -->
+    <div class="tab-panel active" id="panel-annee">
+
+      <div class="periode-nav">
+        <button class="btn-periode" id="btn-annee-prev" onclick="changerAnnee(-1)">◀</button>
+        <div class="periode-titre" id="titre-annee"></div>
+        <button class="btn-periode" id="btn-annee-next" onclick="changerAnnee(1)">▶</button>
+      </div>
+
+      <!-- KPI annuels -->
+      <div class="stats-kpi" id="kpi-annee"></div>
+
+      <!-- Camembert statuts -->
+      <div class="stat-section">
+        <div class="stat-section-title">Répartition par statut</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">📊 Graphique</div>
+            <div class="chart-wrap"><canvas id="chart-statuts-annee"></canvas></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Détail</div>
+            <table class="stat-table" id="table-statuts-annee"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Évolution mensuelle -->
+      <div class="stat-section">
+        <div class="stat-section-title">Évolution mensuelle des demandes</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">📈 Par mois</div>
+            <div class="chart-wrap"><canvas id="chart-evolution-annee"></canvas></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Détail</div>
+            <table class="stat-table" id="table-evolution-annee"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top articles demandés -->
+      <div class="stat-section">
+        <div class="stat-section-title">Top 5 articles les plus demandés</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">🏆 Podium</div>
+            <div id="podium-demandes-annee"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Classement</div>
+            <table class="stat-table" id="table-demandes-annee"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top articles par jours -->
+      <div class="stat-section">
+        <div class="stat-section-title">Top 5 articles par jours loués</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">🏆 Podium</div>
+            <div id="podium-jours-annee"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Classement</div>
+            <table class="stat-table" id="table-jours-annee"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Jours avec matériel loué -->
+      <div class="stat-section">
+        <div class="stat-section-title">Jours avec matériel loué</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">📆 Total</div>
+            <div class="jours-loues-wrap" id="jours-loues-annee"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Par mois</div>
+            <table class="stat-table" id="table-jours-loues-annee"></table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ══ VUE MENSUELLE ══ -->
+    <div class="tab-panel" id="panel-mois">
+
+      <div class="periode-nav">
+        <button class="btn-periode" id="btn-mois-prev" onclick="changerMois(-1)">◀</button>
+        <div class="periode-titre" id="titre-mois"></div>
+        <button class="btn-periode" id="btn-mois-next" onclick="changerMois(1)">▶</button>
+      </div>
+
+      <!-- KPI mensuels -->
+      <div class="stats-kpi" id="kpi-mois"></div>
+
+      <!-- Camembert statuts -->
+      <div class="stat-section">
+        <div class="stat-section-title">Répartition par statut</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">📊 Graphique</div>
+            <div class="chart-wrap"><canvas id="chart-statuts-mois"></canvas></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Détail</div>
+            <table class="stat-table" id="table-statuts-mois"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Évolution par semaine -->
+      <div class="stat-section">
+        <div class="stat-section-title">Demandes par semaine</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">📈 Par semaine</div>
+            <div class="chart-wrap"><canvas id="chart-evolution-mois"></canvas></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Détail</div>
+            <table class="stat-table" id="table-evolution-mois"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top articles demandés -->
+      <div class="stat-section">
+        <div class="stat-section-title">Top 5 articles les plus demandés</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">🏆 Podium</div>
+            <div id="podium-demandes-mois"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Classement</div>
+            <table class="stat-table" id="table-demandes-mois"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top articles par jours -->
+      <div class="stat-section">
+        <div class="stat-section-title">Top 5 articles par jours loués</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">🏆 Podium</div>
+            <div id="podium-jours-mois"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Classement</div>
+            <table class="stat-table" id="table-jours-mois"></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Jours avec matériel loué -->
+      <div class="stat-section">
+        <div class="stat-section-title">Jours avec matériel loué</div>
+        <div class="stat-row">
+          <div class="stat-card">
+            <div class="stat-card-title">📆 Total</div>
+            <div class="jours-loues-wrap" id="jours-loues-mois"></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">📋 Par semaine</div>
+            <table class="stat-table" id="table-jours-loues-mois"></table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold —
+    <a href="mailto:amicalesaintavold@gmail.com">Contact</a> |
+    <a href="mailto:aidemesapplis@gmail.com">Support technique</a> |
+    <a href="../../pages/mentions_legales.html">Mentions légales</a>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="../../js/supabase.js"></script>
+  <script>
+    var user = requireAuth();
+    if (user) {
+      var ini = user.nom.trim().split(' ').map(function(p) { return p[0]; }).join('').substring(0,2).toUpperCase();
+      document.getElementById('user-avatar').textContent = ini;
+      document.getElementById('user-name').textContent   = user.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+    }
+
+    var MOIS_NOMS = ['Janvier','Février','Mars','Avril','Mai','Juin',
+                     'Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+    var MOIS_COURTS = ['Jan','Fév','Mar','Avr','Mai','Jun','Jul','Aoû','Sep','Oct','Nov','Déc'];
+
+    var STATUT_LABELS = {
+      en_attente:    'En attente',
+      acceptee:      'Acceptée',
+      partielle:     'Partielle',
+      refusee:       'Refusée',
+      rendu:         'Rendu',
+      rendu_partiel: 'Retour partiel',
+      cloture:       'Clôturée'
+    };
+    var STATUT_COLORS = {
+      en_attente:    '#e07b39',
+      acceptee:      '#4a8c5c',
+      partielle:     '#2a6cb0',
+      refusee:       '#c0392b',
+      rendu:         '#3478c8',
+      rendu_partiel: '#b07800',
+      cloture:       '#888'
+    };
+
+    // ── État ──────────────────────────────────────────────────────
+    var anneeActive = new Date().getFullYear();
+    var moisActif   = new Date().getMonth(); // 0-11
+    var anneesMois  = new Date().getFullYear();
+    var tabActive   = 'annee';
+
+    var chartStatutsAnnee    = null;
+    var chartEvolutionAnnee  = null;
+    var chartStatutsMois     = null;
+    var chartEvolutionMois   = null;
+
+    var demandesCache = null; // toutes les demandes chargées une fois
+
+    // ── Onglets ───────────────────────────────────────────────────
+    function switchTab(tab, btn) {
+      tabActive = tab;
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+      document.getElementById('panel-' + tab).classList.add('active');
+    }
+
+    // ── Navigation ────────────────────────────────────────────────
+    function changerAnnee(delta) {
+      anneeActive += delta;
+      var now = new Date().getFullYear();
+      document.getElementById('btn-annee-next').disabled = anneeActive >= now;
+      renderAnnee();
+    }
+
+    function changerMois(delta) {
+      moisActif += delta;
+      if (moisActif > 11) { moisActif = 0; anneesMois++; }
+      if (moisActif < 0)  { moisActif = 11; anneesMois--; }
+      var now = new Date();
+      document.getElementById('btn-mois-next').disabled =
+        anneesMois > now.getFullYear() ||
+        (anneesMois === now.getFullYear() && moisActif >= now.getMonth());
+      renderMois();
+    }
+
+    // ── Chargement données ────────────────────────────────────────
+    async function chargerTout() {
+      // On charge toutes les demandes acceptées/partielles/rendues/cloturées/refusées
+      var data = await supabaseRequest(
+        'demandes?select=id,statut,date_debut,date_fin,created_at'
+        + ',demande_articles(quantite_validee,articles(nom))'
+        + '&order=date_debut.asc'
+      );
+      demandesCache = data || [];
+      renderAnnee();
+      renderMois();
+    }
+
+    // ── Filtrage par période ──────────────────────────────────────
+    function filtrerParAnnee(annee) {
+      return demandesCache.filter(function(d) {
+        var date = new Date(d.created_at);
+        return date.getFullYear() === annee;
+      });
+    }
+
+    function filtrerParMois(annee, mois) {
+      return demandesCache.filter(function(d) {
+        var date = new Date(d.created_at);
+        return date.getFullYear() === annee && date.getMonth() === mois;
+      });
+    }
+
+    // ── Calcul jours loués ────────────────────────────────────────
+    function calculerJoursLoues(demandes, dateDebut, dateFin) {
+      // Jours distincts où au moins une location acceptée/partielle/rendu/rendu_partiel était active
+      var statutsActifs = ['acceptee', 'partielle', 'rendu', 'rendu_partiel', 'cloture'];
+      var joursSet = {};
+      demandes.forEach(function(d) {
+        if (statutsActifs.indexOf(d.statut) === -1) return;
+        var debut = new Date(d.date_debut);
+        var fin   = new Date(d.date_fin);
+        // Limiter à la période demandée
+        if (dateDebut && debut < dateDebut) debut = new Date(dateDebut);
+        if (dateFin   && fin   > dateFin)   fin   = new Date(dateFin);
+        var cur = new Date(debut);
+        while (cur <= fin) {
+          joursSet[cur.toISOString().substring(0,10)] = true;
+          cur.setDate(cur.getDate() + 1);
+        }
+      });
+      return Object.keys(joursSet).length;
+    }
+
+    // ── Top articles ──────────────────────────────────────────────
+    function topArticlesDemandes(demandes, n) {
+      var counts = {};
+      demandes.forEach(function(d) {
+        (d.demande_articles || []).forEach(function(a) {
+          var nom = a.articles ? a.articles.nom : 'Inconnu';
+          counts[nom] = (counts[nom] || 0) + 1;
+        });
+      });
+      return Object.keys(counts)
+        .map(function(nom) { return { nom: nom, val: counts[nom] }; })
+        .sort(function(a, b) { return b.val - a.val; })
+        .slice(0, n);
+    }
+
+    function topArticlesJours(demandes, n) {
+      var statutsActifs = ['acceptee', 'partielle', 'rendu', 'rendu_partiel', 'cloture'];
+      var jours = {};
+      demandes.forEach(function(d) {
+        if (statutsActifs.indexOf(d.statut) === -1) return;
+        var debut = new Date(d.date_debut);
+        var fin   = new Date(d.date_fin);
+        var nb = Math.round((fin - debut) / 86400000) + 1;
+        (d.demande_articles || []).forEach(function(a) {
+          var nom = a.articles ? a.articles.nom : 'Inconnu';
+          jours[nom] = (jours[nom] || 0) + nb;
+        });
+      });
+      return Object.keys(jours)
+        .map(function(nom) { return { nom: nom, val: jours[nom] }; })
+        .sort(function(a, b) { return b.val - a.val; })
+        .slice(0, n);
+    }
+
+    function renderKPI(containerId, demandes) {
+  var total     = demandes.length;
+  var acceptees = demandes.filter(function(d) { return d.statut === 'acceptee' || d.statut === 'partielle' || d.statut === 'rendu' || d.statut === 'rendu_partiel' || d.statut === 'cloture'; }).length;
+  var refusees  = demandes.filter(function(d) { return d.statut === 'refusee'; }).length;
+  var enAttente = demandes.filter(function(d) { return d.statut === 'en_attente'; }).length;
+
+  document.getElementById(containerId).innerHTML =
+    kpiCard('orange', total,     'Total') +
+    kpiCard('green',  acceptees, 'Acceptées') +
+    kpiCard('red',    refusees,  'Refusées') +
+    kpiCard('orange', enAttente, 'En attente');
+}
+
+    function kpiCard(cls, val, label) {
+      return '<div class="kpi-card ' + cls + '">'
+        + '<div class="kpi-number">' + val + '</div>'
+        + '<div class="kpi-label">' + label + '</div>'
+        + '</div>';
+    }
+
+    // ── Camembert statuts ─────────────────────────────────────────
+    function renderCamembert(canvasId, tableId, demandes) {
+      var counts = {};
+var counts = {};
+demandes.forEach(function(d) {
+  var statut = d.statut;
+  if (statut === 'partielle' || statut === 'rendu' || statut === 'rendu_partiel' || statut === 'cloture') statut = 'acceptee';
+  if (['acceptee', 'refusee', 'en_attente'].indexOf(statut) !== -1) {
+    counts[statut] = (counts[statut] || 0) + 1;
+  }
+});
+
+      var labels = [], data = [], colors = [];
+      Object.keys(counts).forEach(function(s) {
+        labels.push(STATUT_LABELS[s] || s);
+        data.push(counts[s]);
+        colors.push(STATUT_COLORS[s] || '#ccc');
+      });
+
+      // Recréer le canvas pour éviter les conflits Chart.js (panel caché = dimensions nulles)
+      var wrap = document.getElementById(canvasId).parentElement;
+      wrap.innerHTML = '<canvas id="' + canvasId + '" style="max-height:220px;"></canvas>';
+      var canvas = document.getElementById(canvasId);
+
+      if (data.length === 0) {
+        wrap.innerHTML = '<div class="empty-stats">Aucune donnée</div>';
+        document.getElementById(tableId).innerHTML = '';
+        return;
+      }
+
+      new Chart(canvas, {
+        type: 'doughnut',
+        data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderWidth: 2 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 12 } } }
+        }
+      });
+
+      // Tableau
+      var html = '<thead><tr><th>Statut</th><th class="num">Nb</th><th class="num">%</th></tr></thead><tbody>';
+      var total = data.reduce(function(a, b) { return a + b; }, 0);
+      labels.forEach(function(l, i) {
+        var pct = total > 0 ? Math.round(data[i] / total * 100) : 0;
+        html += '<tr><td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:' + colors[i] + ';margin-right:6px;"></span>' + l + '</td>'
+          + '<td class="num">' + data[i] + '</td>'
+          + '<td class="num">' + pct + '%</td></tr>';
+      });
+      html += '</tbody>';
+      document.getElementById(tableId).innerHTML = html;
+    }
+
+    // ── Graphique évolution ───────────────────────────────────────
+    function renderEvolutionAnnee(demandes, annee) {
+      var parMois = new Array(12).fill(0);
+      demandes.forEach(function(d) {
+        var m = new Date(d.created_at).getMonth();
+        parMois[m]++;
+      });
+
+      var wrapEA = document.getElementById('chart-evolution-annee').parentElement;
+      wrapEA.innerHTML = '<canvas id="chart-evolution-annee" style="max-height:220px;"></canvas>';
+      var canvas = document.getElementById('chart-evolution-annee');
+
+      new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: MOIS_COURTS,
+          datasets: [{
+            label: 'Demandes',
+            data: parMois,
+            backgroundColor: 'rgba(224,123,57,.7)',
+            borderColor: 'rgba(224,123,57,1)',
+            borderWidth: 1, borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      });
+
+      var html = '<thead><tr><th>Mois</th><th class="num">Demandes</th></tr></thead><tbody>';
+      MOIS_NOMS.forEach(function(m, i) {
+        html += '<tr><td>' + m + '</td><td class="num">' + parMois[i] + '</td></tr>';
+      });
+      html += '</tbody>';
+      document.getElementById('table-evolution-annee').innerHTML = html;
+    }
+
+    function renderEvolutionMois(demandes, annee, mois) {
+      // Découper par semaines du mois
+      var nbJours = new Date(annee, mois + 1, 0).getDate();
+      var semaines = [];
+      var s = 1;
+      while (s <= nbJours) {
+        var fin = Math.min(s + 6, nbJours);
+        semaines.push({ debut: s, fin: fin, count: 0 });
+        s += 7;
+      }
+      demandes.forEach(function(d) {
+        var jour = new Date(d.created_at).getDate();
+        semaines.forEach(function(sem) {
+          if (jour >= sem.debut && jour <= sem.fin) sem.count++;
+        });
+      });
+
+      var labels = semaines.map(function(sem) { return sem.debut + '-' + sem.fin; });
+      var data   = semaines.map(function(sem) { return sem.count; });
+
+      var wrapEM = document.getElementById('chart-evolution-mois').parentElement;
+      wrapEM.innerHTML = '<canvas id="chart-evolution-mois" style="max-height:220px;"></canvas>';
+      var canvas = document.getElementById('chart-evolution-mois');
+
+      chartEvolutionMois = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Demandes',
+            data: data,
+            backgroundColor: 'rgba(74,140,92,.7)',
+            borderColor: 'rgba(74,140,92,1)',
+            borderWidth: 1, borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+        }
+      });
+
+      var html = '<thead><tr><th>Semaine</th><th class="num">Demandes</th></tr></thead><tbody>';
+      semaines.forEach(function(sem) {
+        html += '<tr><td>' + sem.debut + ' au ' + sem.fin + ' ' + MOIS_COURTS[mois] + '</td>'
+          + '<td class="num">' + sem.count + '</td></tr>';
+      });
+      html += '</tbody>';
+      document.getElementById('table-evolution-mois').innerHTML = html;
+    }
+
+    // ── Podium ────────────────────────────────────────────────────
+    function renderPodium(containerId, tableId, items, unite) {
+      var container = document.getElementById(containerId);
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div class="empty-stats">Aucune donnée</div>';
+        document.getElementById(tableId).innerHTML = '';
+        return;
+      }
+
+      var medals = ['🥇', '🥈', '🥉', '', ''];
+      var rankClass = ['rank-1', 'rank-2', 'rank-3', 'rank-4', 'rank-5'];
+
+      // Podium : 2ème, 1er, 3ème (ordre visuel)
+      var ordre = [];
+      if (items.length >= 2) ordre.push(1); // index 1 = 2ème
+      ordre.push(0); // index 0 = 1er
+      if (items.length >= 3) ordre.push(2); // index 2 = 3ème
+
+      var podiumHtml = '<div class="podium-wrap">';
+      ordre.forEach(function(idx) {
+        var item = items[idx];
+        podiumHtml += '<div class="podium-item ' + rankClass[idx] + '">'
+          + '<div class="podium-medal">' + (medals[idx] || (idx+1) + 'e') + '</div>'
+          + '<div class="podium-name">' + item.nom + '</div>'
+          + '<div class="podium-value">' + item.val + ' ' + unite + '</div>'
+          + '<div class="podium-block">' + item.val + '</div>'
+          + '</div>';
+      });
+      podiumHtml += '</div>';
+
+      // 4ème et 5ème en dessous
+      var reste = items.slice(3);
+      if (reste.length > 0) {
+        podiumHtml += '<div class="podium-rank4-5" style="margin-top:8px;">';
+        reste.forEach(function(item, i) {
+          var idx = i + 3;
+          podiumHtml += '<div class="podium-item ' + rankClass[idx] + '" style="max-width:120px;">'
+            + '<div class="podium-name" style="font-size:.7rem;">' + (idx+1) + 'e — ' + item.nom + '</div>'
+            + '<div class="podium-value">' + item.val + ' ' + unite + '</div>'
+            + '<div class="podium-block" style="min-height:28px !important;">' + item.val + '</div>'
+            + '</div>';
+        });
+        podiumHtml += '</div>';
+      }
+
+      container.innerHTML = podiumHtml;
+
+      // Tableau
+      var html = '<thead><tr><th>#</th><th>Article</th><th class="num">' + unite + '</th></tr></thead><tbody>';
+      items.forEach(function(item, i) {
+        html += '<tr><td>' + (medals[i] || (i+1)) + '</td><td>' + item.nom + '</td><td class="num">' + item.val + '</td></tr>';
+      });
+      html += '</tbody>';
+      document.getElementById(tableId).innerHTML = html;
+    }
+
+    // ── Jours loués ───────────────────────────────────────────────
+    function renderJoursLoues(containerId, tableId, demandes, periodeLabel, totalJoursPeriode, parDecoupage, decoupageLabels) {
+      var nbJours = calculerJoursLoues(demandes, null, null);
+      var pct = totalJoursPeriode > 0 ? Math.round(nbJours / totalJoursPeriode * 100) : 0;
+
+      document.getElementById(containerId).innerHTML =
+        '<div class="jours-loues-number">' + nbJours + '</div>'
+        + '<div class="jours-loues-label">jours avec matériel loué</div>'
+        + '<div style="width:100%;padding:0 16px;box-sizing:border-box;">'
+        + '<div class="jours-progress"><div class="jours-progress-bar" style="width:' + pct + '%"></div></div>'
+        + '<div class="jours-progress-label">' + pct + '% ' + periodeLabel + '</div>'
+        + '</div>';
+
+      // Tableau par découpage
+      var nbJoursPeriode = [31,28,31,30,31,30,31,31,30,31,30,31];
+var html = '<thead><tr><th>Période</th><th class="num">Jours</th><th class="num">%</th></tr></thead><tbody>';
+parDecoupage.forEach(function(item, i) {
+  var joursTotal = totalJoursPeriode === 365 || totalJoursPeriode === 366 ? nbJoursPeriode[i] : totalJoursPeriode;
+  var pctMois = joursTotal > 0 ? Math.round(item / joursTotal * 100) : 0;
+  html += '<tr><td>' + decoupageLabels[i] + '</td>'
+    + '<td class="num">' + item + '</td>'
+    + '<td class="num">' + pctMois + '%</td></tr>';
+});
+      html += '</tbody>';
+      document.getElementById(tableId).innerHTML = html;
+    }
+
+    // ── Render Année ──────────────────────────────────────────────
+    function renderAnnee() {
+      document.getElementById('titre-annee').textContent = anneeActive;
+      document.getElementById('btn-annee-next').disabled = anneeActive >= new Date().getFullYear();
+
+      var demandes = filtrerParAnnee(anneeActive);
+      renderKPI('kpi-annee', demandes);
+      renderCamembert('chart-statuts-annee', 'table-statuts-annee', demandes);
+      renderEvolutionAnnee(demandes, anneeActive);
+      renderPodium('podium-demandes-annee', 'table-demandes-annee', topArticlesDemandes(demandes, 5), 'demandes');
+      renderPodium('podium-jours-annee', 'table-jours-annee', topArticlesJours(demandes, 5), 'jours');
+
+      // Jours loués par mois
+      var parMois = MOIS_NOMS.map(function(m, i) {
+        var debut = new Date(anneeActive, i, 1);
+        var fin   = new Date(anneeActive, i + 1, 0);
+        return calculerJoursLoues(demandes.filter(function(d) {
+          var dd = new Date(d.date_debut);
+          var df = new Date(d.date_fin);
+          return df >= debut && dd <= fin;
+        }), debut, fin);
+      });
+      var estBissextile = (anneeActive % 4 === 0 && anneeActive % 100 !== 0) || anneeActive % 400 === 0;
+      var totalJoursAnnee = estBissextile ? 366 : 365;
+      renderJoursLoues('jours-loues-annee', 'table-jours-loues-annee', demandes,
+        'des jours de l\'année', totalJoursAnnee, parMois, MOIS_NOMS);
+    }
+
+    // ── Render Mois ───────────────────────────────────────────────
+    function renderMois() {
+      document.getElementById('titre-mois').textContent = MOIS_NOMS[moisActif] + ' ' + anneesMois;
+      var now = new Date();
+      document.getElementById('btn-mois-next').disabled =
+        anneesMois > now.getFullYear() ||
+        (anneesMois === now.getFullYear() && moisActif >= now.getMonth());
+
+      var demandes = filtrerParMois(anneesMois, moisActif);
+      renderKPI('kpi-mois', demandes);
+      renderCamembert('chart-statuts-mois', 'table-statuts-mois', demandes);
+      renderEvolutionMois(demandes, anneesMois, moisActif);
+      renderPodium('podium-demandes-mois', 'table-demandes-mois', topArticlesDemandes(demandes, 5), 'demandes');
+      renderPodium('podium-jours-mois', 'table-jours-mois', topArticlesJours(demandes, 5), 'jours');
+
+      // Jours loués par semaine
+      var nbJoursMois = new Date(anneesMois, moisActif + 1, 0).getDate();
+      var semaines = [], labels = [], s = 1;
+      while (s <= nbJoursMois) {
+        var fin = Math.min(s + 6, nbJoursMois);
+        var debut = new Date(anneesMois, moisActif, s);
+        var finDate = new Date(anneesMois, moisActif, fin);
+        semaines.push(calculerJoursLoues(demandes.filter(function(d) {
+          return new Date(d.date_fin) >= debut && new Date(d.date_debut) <= finDate;
+        }), debut, finDate));
+        labels.push(s + ' au ' + fin);
+        s += 7;
+      }
+      renderJoursLoues('jours-loues-mois', 'table-jours-loues-mois', demandes,
+        'des jours du mois', nbJoursMois, semaines, labels);
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    chargerTout();
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Réserver du matériel - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .date-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 8px;
+    }
+    @media (max-width: 480px) { .date-grid { grid-template-columns: 1fr; } }
+
+    .item-name { font-weight: 600; color: var(--text); }
+    .item-desc { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+
+    .dispo-badge {
+      display: inline-block;
+      background: rgba(74,140,92,.12);
+      color: var(--accent-d);
+      font-weight: 700;
+      font-size: .85rem;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid rgba(74,140,92,.25);
+    }
+
+    .qty-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .qty-btn {
+      width: 32px; height: 32px;
+      border-radius: 8px; border: none;
+      cursor: pointer; font-size: 1.1rem; font-weight: 700;
+      color: #fff; background: var(--primary);
+      transition: background .15s, transform .1s;
+      display: grid; place-items: center;
+    }
+    .qty-btn:hover { background: var(--primary-d); }
+    .qty-btn:active { transform: scale(.9); }
+    .qty-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    .qty-input {
+      width: 44px; text-align: center;
+      border: 1.5px solid var(--border);
+      border-radius: 8px; padding: 6px 4px;
+      font-size: .95rem; font-weight: 600;
+      color: var(--text); background: var(--bg);
+    }
+
+    .feedback { font-size: .78rem; color: var(--accent-d); font-weight: 500; }
+    .feedback.empty { color: var(--muted); }
+
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 4px;
+    }
+    .resume { font-size: .88rem; color: var(--muted); }
+    .resume strong { color: var(--text); }
+
+    .btn-valider {
+      background: var(--accent); color: #fff; border: none;
+      padding: 12px 28px; border-radius: 10px;
+      font-size: .95rem; font-weight: 700; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 8px;
+      transition: background .2s, transform .1s, box-shadow .2s;
+      box-shadow: 0 3px 10px rgba(74,140,92,.35);
+    }
+    .btn-valider:hover {
+      background: var(--accent-d);
+      box-shadow: 0 5px 16px rgba(74,140,92,.45);
+      transform: translateY(-1px);
+    }
+
+    .error-msg {
+      color: #c0392b;
+      font-size: .78rem;
+      margin-top: 4px;
+      min-height: 16px;
+    }
+
+    /* Séparateur de catégorie */
+    .cat-header-row td {
+      background: linear-gradient(90deg, var(--primary) 0%, var(--primary-d) 100%);
+      color: #fff;
+      font-weight: 700;
+      font-size: .8rem;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+      padding: 7px 14px;
+      border: none;
+    }
+    .cat-header-row td .cat-icon {
+      margin-right: 6px;
+      font-size: .95rem;
+    }
+
+    /* Barre filtre */
+    .filtre-bar {
+      padding: 12px 20px 4px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
+    }
+    .filtre-bar input, .filtre-bar select {
+      padding: 7px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: .85rem;
+      color: var(--text);
+      background: var(--bg);
+    }
+    .filtre-bar input { width: 220px; }
+    .filtre-bar input:focus, .filtre-bar select:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #fff;
+    }
+
+    .popup-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .popup-overlay.show { display: flex; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Gestion des prêts de matériel</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+
+    <div class="page-heading">
+      <div class="icon-wrap">📦</div>
+      <div>
+        <h1>Réserver du matériel</h1>
+        <p>Choisissez les dates et les quantités pour chaque article</p>
+        <p><strong>L'amicale est toujours prioritaire dans la location de son matériel</strong></p>
+      </div>
+    </div>
+
+    <!-- Dates -->
+    <div class="card">
+      <div class="card-header"><h2>📅 Période de prêt</h2></div>
+      <div class="card-body">
+        <div class="date-grid">
+          <div class="field">
+            <label>Date de prêt</label>
+            <input type="date" id="date-pret">
+            <div class="error-msg" id="error-pret"></div>
+          </div>
+          <div class="field">
+            <label>Date de retour</label>
+            <input type="date" id="date-retour">
+            <div class="error-msg" id="error-retour"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Matériel -->
+    <div class="card">
+      <div class="card-header"><h2>🪑 Matériel disponible</h2></div>
+
+      <!-- Barre de filtre -->
+      <div class="filtre-bar">
+        <input type="text" id="filtre-nom" placeholder="🔍 Rechercher un article..."
+          oninput="filtrerArticles()">
+        <select id="filtre-cat" onchange="filtrerArticles()">
+          <option value="">Toutes les catégories</option>
+        </select>
+      </div>
+
+      <div class="card-body" style="padding:0;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Article</th>
+                <th class="center">Disponible</th>
+                <th class="center">Quantité</th>
+                <th class="center">Confirmation</th>
+              </tr>
+            </thead>
+            <tbody id="articles-body"></tbody>
+          </table>
+          <div class="empty-state" id="empty-state" style="display:none;">
+            <span class="empty-icon">📦</span>
+            <p>Aucun matériel disponible pour le moment.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action bar -->
+    <div class="action-bar">
+      <div class="resume" id="resume-text">Aucun article sélectionné</div>
+      <button class="btn-valider" id="btn-valider">✅ Valider les réservations</button>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold — Contact | Mentions légales
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    const user = requireAuth();
+    if (user) {
+      const initials = user.nom.trim().split(' ').map(p => p[0]).join('').substring(0,2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+      document.getElementById('user-name').textContent   = user.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+    }
+
+    const tbody      = document.getElementById('articles-body');
+    const emptyState = document.getElementById('empty-state');
+    const resumeText = document.getElementById('resume-text');
+    const btnValider = document.getElementById('btn-valider');
+    const toast      = document.getElementById('toast');
+
+    let allArticles = [];
+
+    // Icônes par catégorie
+    const catIcons = {
+      'Mobilier':         '🪑',
+      'Vaisselle':        '🍽️',
+      'Électroménager':   '🔌',
+      'Sono / Éclairage': '🔊',
+      'Jeux':             '🎲',
+      'Autres':           '📦'
+    };
+
+    function showToast(msg, type = 'success') {
+      toast.textContent = msg;
+      toast.className = 'toast' + (type === 'error' ? ' error' : '');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    function updateResume() {
+      const inputs = tbody.querySelectorAll('.qty-input');
+      let total = 0;
+      inputs.forEach(i => total += parseInt(i.value) || 0);
+      resumeText.innerHTML = total > 0
+        ? `<strong>${total}</strong> article(s) sélectionné(s)`
+        : 'Aucun article sélectionné';
+    }
+
+    async function loadArticles() {
+      try {
+        // Charger catégories pour le filtre
+        const cats = await supabaseRequest('categories_pret?select=id,libelle&order=libelle.asc');
+        const selFiltre = document.getElementById('filtre-cat');
+        selFiltre.innerHTML = '<option value="">Toutes les catégories</option>' +
+          cats.map(c => `<option value="${c.libelle}">${c.libelle}</option>`).join('');
+
+        const articles = await getArticles();
+        allArticles = articles.filter(a => a.quantite_disponible > 0);
+        emptyState.style.display = allArticles.length === 0 ? 'block' : 'none';
+        renderArticles(allArticles);
+      } catch (err) {
+        showToast('❌ Erreur chargement matériel : ' + err.message, 'error');
+      }
+    }
+
+    function renderArticles(articles) {
+      tbody.innerHTML = '';
+
+      if (articles.length === 0) {
+        emptyState.style.display = 'block';
+        return;
+      }
+      emptyState.style.display = 'none';
+
+      // Trier par catégorie puis par nom
+      const sorted = [...articles].sort((a, b) => {
+        const catA = (a.categorie || 'Autres').toLowerCase();
+        const catB = (b.categorie || 'Autres').toLowerCase();
+        if (catA !== catB) return catA.localeCompare(catB, 'fr');
+        return a.nom.localeCompare(b.nom, 'fr');
+      });
+
+      let lastCat = null;
+
+      sorted.forEach(article => {
+        const cat = article.categorie || 'Autres';
+
+        // Ligne séparatrice de catégorie
+        if (cat !== lastCat) {
+          lastCat = cat;
+          const icon = catIcons[cat] || '📦';
+          const trCat = document.createElement('tr');
+          trCat.className = 'cat-header-row';
+          trCat.dataset.cat = cat.toLowerCase();
+          trCat.innerHTML = `<td colspan="4"><span class="cat-icon">${icon}</span>${cat}</td>`;
+          tbody.appendChild(trCat);
+        }
+
+        const tr = document.createElement('tr');
+        tr.dataset.available = article.quantite_disponible;
+        tr.dataset.id = article.id;
+        tr.dataset.nom = article.nom.toLowerCase();
+        tr.dataset.cat = (article.categorie || 'Autres').toLowerCase();
+        tr.innerHTML = `
+          <td>
+            <div class="item-name">${article.nom}</div>
+            <div class="item-desc">${article.categorie || ''}</div>
+          </td>
+          <td class="center"><span class="dispo-badge">${article.quantite_disponible}</span></td>
+          <td class="center">
+            <div class="qty-container">
+              <button class="qty-btn minus" disabled>−</button>
+              <input type="text" value="0" class="qty-input" readonly>
+              <button class="qty-btn plus">+</button>
+            </div>
+          </td>
+          <td class="center"><span class="feedback empty">–</span></td>
+        `;
+
+        const plus      = tr.querySelector('.plus');
+        const minus     = tr.querySelector('.minus');
+        const input     = tr.querySelector('.qty-input');
+        const available = article.quantite_disponible;
+
+        plus.addEventListener('click', () => {
+          let val = parseInt(input.value) || 0;
+          if (val < available) {
+            input.value = val + 1;
+            minus.disabled = false;
+            if (val + 1 >= available) plus.disabled = true;
+          }
+          updateResume();
+        });
+
+        minus.addEventListener('click', () => {
+          let val = parseInt(input.value) || 0;
+          if (val > 0) {
+            input.value = val - 1;
+            plus.disabled = false;
+            if (val - 1 <= 0) minus.disabled = true;
+          }
+          updateResume();
+        });
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function filtrerArticles() {
+      const nom = document.getElementById('filtre-nom').value.toLowerCase();
+      const cat = document.getElementById('filtre-cat').value.toLowerCase();
+
+      const rows = tbody.querySelectorAll('tr');
+      let lastCatVisible = null;
+      let catHeaderRows = {};
+
+      // Collecter les lignes header de catégorie
+      rows.forEach(tr => {
+        if (tr.classList.contains('cat-header-row')) {
+          catHeaderRows[tr.dataset.cat] = tr;
+          tr.style.display = 'none'; // cacher par défaut
+        }
+      });
+
+      rows.forEach(tr => {
+        if (tr.classList.contains('cat-header-row')) return;
+        const nomArt = tr.dataset.nom || '';
+        const catArt = tr.dataset.cat || '';
+        const matchNom = !nom || nomArt.includes(nom);
+        const matchCat = !cat || catArt === cat;
+        if (matchNom && matchCat) {
+          tr.style.display = '';
+          // Afficher le header de sa catégorie
+          if (catHeaderRows[catArt]) catHeaderRows[catArt].style.display = '';
+        } else {
+          tr.style.display = 'none';
+        }
+      });
+    }
+
+    // Validation
+    btnValider.addEventListener('click', async () => {
+      const datePret   = document.getElementById('date-pret').value;
+      const dateRetour = document.getElementById('date-retour').value;
+      const errorPret   = document.getElementById('error-pret');
+      const errorRetour = document.getElementById('error-retour');
+
+      errorPret.textContent = '';
+      errorRetour.textContent = '';
+
+      let erreur = false;
+      if (!datePret)   { errorPret.textContent   = '⚠ Veuillez choisir une date de prêt.';   erreur = true; }
+      if (!dateRetour) { errorRetour.textContent = '⚠ Veuillez choisir une date de retour.'; erreur = true; }
+      if (erreur) return;
+
+      if (new Date(dateRetour) < new Date(datePret)) {
+        errorRetour.textContent = '⚠ La date de retour doit être après le prêt.';
+        return;
+      }
+
+      const rows = tbody.querySelectorAll('tr[data-available]');
+      let totalQty = 0;
+      rows.forEach(r => totalQty += parseInt(r.querySelector('.qty-input').value) || 0);
+      if (totalQty === 0) { showToast('⚠ Choisissez au moins un article.', 'error'); return; }
+
+      try {
+        const demande = await ajouterDemande(user.id, datePret, dateRetour, null);
+        const demandeId = demande[0].id;
+
+        const articlesChoisis = [];
+        rows.forEach(r => {
+          const qty = parseInt(r.querySelector('.qty-input').value) || 0;
+          if (qty > 0) articlesChoisis.push({
+            demande_id: demandeId,
+            article_id: parseInt(r.dataset.id),
+            quantite_demandee: qty
+          });
+        });
+
+        await supabaseRequest('demande_articles', {
+          method: 'POST',
+          body: JSON.stringify(articlesChoisis)
+        });
+
+        const fmt = d => { const p = d.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; };
+        rows.forEach(r => {
+          const qty = parseInt(r.querySelector('.qty-input').value) || 0;
+          const fb  = r.querySelector('.feedback');
+          fb.textContent = qty > 0 ? `✔ ${qty} du ${fmt(datePret)} au ${fmt(dateRetour)}` : '–';
+          fb.className = qty > 0 ? 'feedback' : 'feedback empty';
+        });
+
+        document.getElementById('popup-confirmation').classList.add('show');
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    });
+
+    function fermerConfirmation() {
+      document.getElementById('popup-confirmation').classList.remove('show');
+      window.location.href = '../accueil.html';
+    }
+
+    loadArticles();
+  </script>
+
+  <div class="popup-overlay" id="popup-confirmation">
+    <div style="background:var(--card-bg); border-radius:var(--radius); box-shadow:0 12px 40px rgba(0,0,0,.2); width:100%; max-width:420px; padding:32px; margin:16px; text-align:center;">
+      <div style="font-size:2.5rem; margin-bottom:16px;">✅</div>
+      <div style="font-size:1.1rem; font-weight:700; margin-bottom:8px;">Demande enregistrée !</div>
+      <div style="font-size:.88rem; color:var(--muted); margin-bottom:24px; line-height:1.6;">
+        Votre demande a bien été prise en compte.<br>
+        Elle sera traitée par un gestionnaire dans les meilleurs délais.<br><br>
+        <strong>Les demandes sont traitées par ordre d'arrivée.</strong>
+      </div>
+      <button onclick="fermerConfirmation()" style="background:var(--accent); color:#fff; border:none; padding:10px 28px; border-radius:8px; font-size:.95rem; font-weight:700; cursor:pointer;">OK</button>
+    </div>
+  </div>
+
+</body>
+</html>

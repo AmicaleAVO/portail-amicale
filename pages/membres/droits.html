@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vos Droits - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .droits-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    @media (max-width: 600px) {
+      .droits-grid { grid-template-columns: 1fr; }
+    }
+
+    .cat-icon-wrap {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 1.15rem;
+      background: rgba(224,123,57,.12);
+      flex-shrink: 0;
+    }
+
+    .droits-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .droit-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: .88rem;
+      color: var(--text);
+      line-height: 1.5;
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--border);
+    }
+    .droit-item:last-child { border-bottom: none; }
+    .droit-bullet {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--primary);
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .pret-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .pret-desc {
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    .btn-pret {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      padding: 9px 18px;
+      font-size: .88rem;
+      font-weight: 700;
+      text-decoration: none;
+      transition: background .15s;
+      box-shadow: 0 3px 10px rgba(74,140,92,.3);
+    }
+    .btn-pret:hover { background: var(--accent-d); }
+
+    .last-update {
+      font-size: .75rem;
+      color: var(--muted);
+      text-align: right;
+      margin: -12px 0 16px;
+    }
+
+    .separateur {
+      margin: 24px 0 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .separateur-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .separateur-label {
+      font-size: .75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Vos droits amicalistes</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+
+    <div class="page-heading">
+      <div class="icon-wrap">🏅</div>
+      <div>
+        <h1>Vos droits amicalistes</h1>
+        <p>L'ensemble des avantages dont vous bénéficiez en tant que membre de l'Amicale</p>
+      </div>
+    </div>
+
+    <div id="last-update" class="last-update" style="display:none;"></div>
+
+    <!-- Card fixe : Prêt matériel -->
+    <div class="droits-grid">
+      <div class="card">
+        <div class="card-header">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="cat-icon-wrap">📦</div>
+            <div>
+              <h2>Prêt de matériel</h2>
+              <div style="font-size:.75rem; color:var(--muted); margin-top:2px;">Tables, sono, vaisselle, tentes…</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="pret-badges">
+            <span class="badge badge-green">✅ Gratuit pour les amicalistes</span>
+            <span class="badge badge-orange">⚠️ Soumis à caution</span>
+          </div>
+          <p class="pret-desc">
+            En tant que membre de l'Amicale, vous pouvez emprunter du matériel gratuitement
+            (tables, sono, vaisselle, tentes…). Un dépôt de caution est demandé à la réservation.
+          </p>
+          <a href="../membres/reservations.html" class="btn-pret">📅 Réserver du matériel</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="separateur">
+      <div class="separateur-line"></div>
+      <span class="separateur-label">Avantages financiers &amp; reconnaissances</span>
+      <div class="separateur-line"></div>
+    </div>
+
+    <!-- Grille dynamique Supabase -->
+    <div class="droits-grid" id="droits-grid">
+      <div class="empty-state" id="loading-state">
+        <span class="empty-icon">⏳</span>
+        <p>Chargement des droits…</p>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold —
+    <a href="mailto:amicalesaintavold@gmail.com">Contact</a> |
+    <a href="mailto:aidemesapplis@gmail.com">Support technique</a> |
+    <a href="../../pages/mentions_legales.html">Mentions légales</a>
+  </footer>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    const user = requireAuth();
+    if (user) {
+      const initials = user.nom.trim().split(' ')
+        .map(function(p) { return p[0]; }).join('').substring(0, 2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+      document.getElementById('user-name').textContent   = user.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+    }
+
+    function renderCategorieCard(cat) {
+      var itemsHtml = '';
+      var items = cat.items || [];
+      for (var i = 0; i < items.length; i++) {
+        itemsHtml += '<div class="droit-item"><span class="droit-bullet"></span><span>' + items[i] + '</span></div>';
+      }
+      if (!itemsHtml) {
+        itemsHtml = '<div style="color:var(--muted);font-style:italic;font-size:.85rem;">Aucun droit renseigné.</div>';
+      }
+
+      var sousTitre = cat.sous_titre
+        ? '<div style="font-size:.75rem; color:var(--muted); margin-top:2px;">' + cat.sous_titre + '</div>'
+        : '';
+
+      return '<div class="card">'
+        + '<div class="card-header">'
+        + '<div style="display:flex; align-items:center; gap:10px;">'
+        + '<div class="cat-icon-wrap">' + (cat.icone || '📌') + '</div>'
+        + '<div><h2>' + cat.categorie + '</h2>' + sousTitre + '</div>'
+        + '</div></div>'
+        + '<div class="card-body"><div class="droits-list">' + itemsHtml + '</div></div>'
+        + '</div>';
+    }
+
+    async function chargerDroits() {
+      var grid = document.getElementById('droits-grid');
+      try {
+        var data = await supabaseRequest('droits_amicalistes?select=*&order=ordre.asc');
+
+        if (!data || data.length === 0) {
+          grid.innerHTML = '<div class="empty-state"><span class="empty-icon">📋</span><p>Aucun droit n\'a encore été renseigné.</p></div>';
+          return;
+        }
+
+        var dates = data.map(function(d) { return d.updated_at; }).filter(Boolean).sort().reverse();
+        if (dates.length) {
+          var d = new Date(dates[0]);
+          var el = document.getElementById('last-update');
+          el.style.display = 'block';
+          el.textContent = 'Mis à jour le ' + d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        }
+
+        var html = '';
+        for (var i = 0; i < data.length; i++) {
+          html += renderCategorieCard(data[i]);
+        }
+        grid.innerHTML = html;
+
+      } catch (err) {
+        grid.innerHTML = '<div class="empty-state"><span class="empty-icon">❌</span><p>Impossible de charger les droits.<br><small>' + err.message + '</small></p></div>';
+      }
+    }
+
+    chargerDroits();
+  </script>
+
+</body>
+</html>

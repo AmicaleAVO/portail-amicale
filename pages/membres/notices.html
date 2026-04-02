@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notices - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    main { display: block !important; }
+
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .filter-btn {
+      padding: 7px 16px; border-radius: 99px; border: 1.5px solid var(--border);
+      background: var(--card-bg); color: var(--muted); font-size: .82rem;
+      font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+    .notices-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px; margin-top: 4px;
+    }
+    .notice-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      overflow: hidden; transition: box-shadow .2s, transform .15s;
+      display: flex; flex-direction: column;
+    }
+    .notice-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.12); transform: translateY(-2px); }
+    .notice-card-header { padding: 14px 16px 10px; border-bottom: 1px solid var(--border); }
+    .notice-card-titre { font-weight: 700; font-size: .95rem; color: var(--text); }
+    .notice-card-body { padding: 10px 16px 14px; flex: 1; }
+    .notice-card-categorie {
+      font-size: .75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted); margin-bottom: 4px;
+    }
+    .notice-card-date { font-size: .75rem; color: var(--muted); }
+    .notice-card-actions {
+      padding: 10px 16px; border-top: 1px solid var(--border);
+      display: flex; gap: 8px;
+    }
+
+    .btn-sm {
+      padding: 6px 14px; border-radius: 7px; font-size: .8rem;
+      font-weight: 600; cursor: pointer; border: 1.5px solid var(--border);
+      background: var(--bg); color: var(--muted); transition: all .15s;
+    }
+    .btn-sm:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-sm.primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-sm.primary:hover { opacity: .85; }
+
+    /* Popup lecture */
+    .popup-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 1000;
+      align-items: flex-start; justify-content: center;
+      padding: 24px 16px; overflow-y: auto;
+    }
+    .popup-overlay.show { display: flex; }
+    .popup-notice {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: 0 12px 40px rgba(0,0,0,.25);
+      width: 100%; max-width: 680px; margin: auto;
+    }
+    .popup-notice-header {
+      padding: 20px 24px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    }
+    .popup-notice-titre { font-size: 1.15rem; font-weight: 700; color: var(--text); flex: 1; }
+    .popup-notice-meta  { font-size: .75rem; color: var(--muted); margin-top: 4px; }
+    .popup-notice-body  { padding: 24px; line-height: 1.7; font-size: .9rem; }
+    .popup-notice-body h1,
+    .popup-notice-body h2,
+    .popup-notice-body h3 { margin: 12px 0 6px; font-weight: 700; }
+    .popup-notice-body p  { margin: 0 0 10px; }
+    .popup-notice-body ul,
+    .popup-notice-body ol { padding-left: 20px; margin: 0 0 10px; }
+    .popup-notice-footer {
+      padding: 14px 24px; border-top: 1px solid var(--border);
+      display: flex; justify-content: flex-end; gap: 10px;
+    }
+    .btn-fermer {
+      background: none; border: none; font-size: 1.2rem;
+      cursor: pointer; color: var(--muted); padding: 2px 6px; border-radius: 6px;
+    }
+    .btn-fermer:hover { background: var(--border); }
+    .btn-fermer-footer {
+      padding: 9px 20px; border-radius: 8px; border: 1.5px solid var(--border);
+      background: var(--bg); color: var(--muted); font-size: .88rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-pdf {
+      background: var(--primary); color: #fff; border: none;
+      padding: 9px 20px; border-radius: 8px; font-size: .88rem;
+      font-weight: 700; cursor: pointer; transition: opacity .15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-pdf:hover { opacity: .85; }
+
+    .empty-notices { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-notices .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Notices</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+    <div class="page-heading">
+      <div class="icon-wrap">📄</div>
+      <div>
+        <h1>Notices</h1>
+        <p>Consultez et téléchargez les notices de l'amicale</p>
+      </div>
+    </div>
+
+    <div class="filters" id="filtres-categories">
+      <button class="filter-btn active" onclick="setFiltre('tous', this)">Toutes</button>
+    </div>
+
+    <div class="notices-grid" id="notices-grid"></div>
+    <div class="empty-notices" id="empty-notices" style="display:none;">
+      <span class="empty-icon">📄</span>
+      <p>Aucune notice disponible.</p>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold —
+    <a href="mailto:amicalesaintavold@gmail.com">Contact</a> |
+    <a href="mailto:aidemesapplis@gmail.com">Support technique</a> |
+    <a href="../../pages/mentions_legales.html">Mentions légales</a>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Popup lecture -->
+  <div class="popup-overlay" id="popup-notice">
+    <div class="popup-notice">
+      <div class="popup-notice-header">
+        <div>
+          <div class="popup-notice-titre" id="popup-titre"></div>
+          <div class="popup-notice-meta"  id="popup-meta"></div>
+        </div>
+        <button class="btn-fermer" onclick="fermerNotice()">✕</button>
+      </div>
+      <div class="popup-notice-body" id="popup-contenu"></div>
+      <div class="popup-notice-footer">
+        <button class="btn-fermer-footer" onclick="fermerNotice()">Fermer</button>
+        <button class="btn-pdf" onclick="genererPDFNoticeOuverte()">📄 Télécharger PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="../../js/supabase.js"></script>
+  <script>
+    var user = requireAuth();
+    if (user) {
+      var initials = user.nom.trim().split(' ')
+        .map(function(p) { return p[0]; }).join('').substring(0, 2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+      document.getElementById('user-name').textContent   = user.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+    }
+
+    var toast = document.getElementById('toast');
+    function showToast(msg, type) {
+      toast.textContent = msg;
+      toast.className = 'toast' + (type === 'error' ? ' error' : '');
+      toast.classList.add('show');
+      setTimeout(function() { toast.classList.remove('show'); }, 3500);
+    }
+
+    var notices       = [];
+    var filtreActif   = 'tous';
+    var noticeOuverte = null;
+
+    async function loadNotices() {
+      try {
+        var data = await supabaseRequest('notices?publiee=eq.true&select=*&order=categorie.asc,titre.asc');
+        notices = data || [];
+        majFiltresCategories();
+        renderNotices();
+      } catch(err) {
+        showToast('Erreur chargement : ' + err.message, 'error');
+      }
+    }
+
+    function majFiltresCategories() {
+      var categories = [];
+      notices.forEach(function(n) {
+        if (n.categorie && categories.indexOf(n.categorie) === -1) categories.push(n.categorie);
+      });
+      categories.sort();
+      var container = document.getElementById('filtres-categories');
+      var html = '<button class="filter-btn' + (filtreActif === 'tous' ? ' active' : '') + '" onclick="setFiltre(\'tous\', this)">Toutes</button>';
+      categories.forEach(function(cat) {
+        var active = filtreActif === cat ? ' active' : '';
+        html += '<button class="filter-btn' + active + '" onclick="setFiltre(\'' + cat.replace(/'/g, "\\'") + '\', this)">' + cat + '</button>';
+      });
+      container.innerHTML = html;
+    }
+
+    function setFiltre(cat, btn) {
+      filtreActif = cat;
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderNotices();
+    }
+
+    function renderNotices() {
+      var grid  = document.getElementById('notices-grid');
+      var empty = document.getElementById('empty-notices');
+      grid.innerHTML = '';
+
+      var filtered = filtreActif === 'tous'
+        ? notices
+        : notices.filter(function(n) { return n.categorie === filtreActif; });
+
+      empty.style.display = filtered.length === 0 ? 'block' : 'none';
+      grid.style.display  = filtered.length === 0 ? 'none' : 'grid';
+
+      filtered.forEach(function(notice) {
+        var dateMAJ = notice.updated_at
+          ? new Date(notice.updated_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' })
+          : '';
+        var div = document.createElement('div');
+        div.className = 'notice-card';
+        div.innerHTML =
+          '<div class="notice-card-header">' +
+            '<div class="notice-card-titre">' + notice.titre + '</div>' +
+          '</div>' +
+          '<div class="notice-card-body">' +
+            '<div class="notice-card-categorie">' + notice.categorie + '</div>' +
+            (dateMAJ ? '<div class="notice-card-date">Mis à jour le ' + dateMAJ + '</div>' : '') +
+          '</div>' +
+          '<div class="notice-card-actions">' +
+            '<button class="btn-sm" onclick="ouvrirNotice(' + notice.id + ')">👁️ Lire</button>' +
+            '<button class="btn-sm primary" onclick="genererPDF(' + notice.id + ')">📄 PDF</button>' +
+          '</div>';
+        grid.appendChild(div);
+      });
+    }
+
+    function ouvrirNotice(id) {
+      var notice = notices.find(function(n) { return n.id === id; });
+      if (!notice) return;
+      noticeOuverte = notice;
+      var dateMAJ = notice.updated_at
+        ? new Date(notice.updated_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' })
+        : '';
+      document.getElementById('popup-titre').textContent  = notice.titre;
+      document.getElementById('popup-meta').textContent   = notice.categorie + (dateMAJ ? ' — Mis à jour le ' + dateMAJ : '');
+      document.getElementById('popup-contenu').innerHTML  = notice.contenu || '';
+      document.getElementById('popup-notice').classList.add('show');
+    }
+
+    function fermerNotice() {
+      document.getElementById('popup-notice').classList.remove('show');
+      noticeOuverte = null;
+    }
+
+    document.getElementById('popup-notice').addEventListener('click', function(e) {
+      if (e.target === this) fermerNotice();
+    });
+
+    function genererPDFNoticeOuverte() {
+      if (noticeOuverte) genererPDF(noticeOuverte.id);
+    }
+
+    // ── Génération PDF (portrait A4, même style que droits) ───────
+    async function genererPDF(id) {
+      var notice = notices.find(function(n) { return n.id === id; });
+      if (!notice) return;
+      showToast('Génération en cours...');
+
+      var logoBase64 = null;
+      try {
+        var resp = await fetch(getLogoUrl());
+        var blob = await resp.blob();
+        logoBase64 = await new Promise(function(resolve) {
+          var reader = new FileReader();
+          reader.onloadend = function() { resolve(reader.result); };
+          reader.readAsDataURL(blob);
+        });
+      } catch(e) {}
+
+      var doc = new jspdf.jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      var PW = 210, PH = 297;
+      var ML = 14, MR = 14;
+      var ORANGE = [224, 123, 57];
+      var VERT   = [74, 140, 92];
+      var GRIS   = [140, 140, 140];
+      var TEXTE  = [45, 45, 45];
+
+      // En-tête
+      doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+      doc.rect(0, 0, PW, 24, 'F');
+      doc.setFillColor(VERT[0], VERT[1], VERT[2]);
+      doc.rect(PW - 80, 0, 80, 24, 'F');
+      if (logoBase64) {
+        try { doc.addImage(logoBase64, 'PNG', PW - 26, 3, 16, 16); } catch(e) {}
+      }
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(15);
+      doc.setFont('helvetica', 'bold');
+      doc.text('Notice', ML, 11);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Amicale des Sapeurs-Pompiers de Saint-Avold', ML, 17);
+      var today = new Date();
+      var dateStr = today.toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+      doc.setFontSize(7);
+      doc.text('Imprime le ' + dateStr, ML, 22);
+
+      var y = 32;
+
+      // Catégorie
+      doc.setTextColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text((notice.categorie || '').toUpperCase(), ML, y);
+      y += 5;
+
+      // Trait coloré + titre
+      doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+      doc.rect(ML, y, 2.5, 10, 'F');
+      doc.setTextColor(TEXTE[0], TEXTE[1], TEXTE[2]);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      var titreLines = doc.splitTextToSize(notice.titre, PW - ML - MR - 8);
+      doc.text(titreLines, ML + 6, y + 7);
+      y += titreLines.length * 8 + 6;
+
+      // Date MAJ
+      if (notice.updated_at) {
+        var dateMAJ = new Date(notice.updated_at).toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+        doc.setTextColor(GRIS[0], GRIS[1], GRIS[2]);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'italic');
+        doc.text('Mis a jour le ' + dateMAJ, ML + 6, y);
+        y += 5;
+      }
+
+      // Ligne séparatrice
+      doc.setDrawColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+      doc.setLineWidth(0.3);
+      doc.line(ML, y, PW - MR, y);
+      y += 8;
+
+      // Contenu
+      var contenuBrut = extraireTexteHTML(notice.contenu || '');
+      var maxW = PW - ML - MR;
+
+      contenuBrut.forEach(function(ligne) {
+        if (y > PH - 20) { doc.addPage(); y = 16; }
+        if (ligne.type === 'h1') {
+          doc.setFontSize(13); doc.setFont('helvetica', 'bold');
+          doc.setTextColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+          var ls = doc.splitTextToSize(ligne.text, maxW);
+          doc.text(ls, ML, y);
+          y += ls.length * 7 + 3;
+          doc.setTextColor(TEXTE[0], TEXTE[1], TEXTE[2]);
+        } else if (ligne.type === 'h2') {
+          doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+          doc.setTextColor(VERT[0], VERT[1], VERT[2]);
+          var ls = doc.splitTextToSize(ligne.text, maxW);
+          doc.text(ls, ML, y);
+          y += ls.length * 6.5 + 2;
+          doc.setTextColor(TEXTE[0], TEXTE[1], TEXTE[2]);
+        } else if (ligne.type === 'h3') {
+          doc.setFontSize(10); doc.setFont('helvetica', 'bold');
+          doc.setTextColor(TEXTE[0], TEXTE[1], TEXTE[2]);
+          var ls = doc.splitTextToSize(ligne.text, maxW);
+          doc.text(ls, ML, y);
+          y += ls.length * 6 + 2;
+        } else if (ligne.type === 'li') {
+          doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+          doc.setTextColor(TEXTE[0], TEXTE[1], TEXTE[2]);
+          doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+          doc.circle(ML + 2, y - 1.2, 1, 'F');
+          var ls = doc.splitTextToSize(ligne.text, maxW - 6);
+          doc.text(ls, ML + 6, y);
+          y += ls.length * 5.5 + 2;
+        } else if (ligne.type === 'empty') {
+          y += 4;
+        } else {
+          doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+          doc.setTextColor(TEXTE[0], TEXTE[1], TEXTE[2]);
+          var ls = doc.splitTextToSize(ligne.text, maxW);
+          doc.text(ls, ML, y);
+          y += ls.length * 5.5 + 2;
+        }
+      });
+
+      // Pied de page sur toutes les pages
+      var totalPages = doc.internal.getNumberOfPages();
+      for (var p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setFillColor(ORANGE[0], ORANGE[1], ORANGE[2]);
+        doc.rect(0, PH - 8, PW, 8, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Amicale des Sapeurs-Pompiers de Saint-Avold', ML, PH - 3);
+        doc.text(p + ' / ' + totalPages, PW - MR - 8, PH - 3);
+      }
+
+      var nomFichier = 'notice_' + notice.titre.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30) + '.pdf';
+      doc.save(nomFichier);
+      showToast('PDF généré !');
+    }
+
+    // ── Extraction texte depuis HTML Quill ────────────────────────
+    function extraireTexteHTML(html) {
+      var div = document.createElement('div');
+      div.innerHTML = html;
+      var lignes = [];
+      function parcourir(node) {
+        if (node.nodeType === 3) {
+          var t = node.textContent.trim();
+          if (t) lignes.push({ type: 'p', text: t });
+          return;
+        }
+        var tag = node.tagName ? node.tagName.toLowerCase() : '';
+        if      (tag === 'h1') { lignes.push({ type: 'h1', text: node.textContent.trim() }); }
+        else if (tag === 'h2') { lignes.push({ type: 'h2', text: node.textContent.trim() }); }
+        else if (tag === 'h3') { lignes.push({ type: 'h3', text: node.textContent.trim() }); }
+        else if (tag === 'li') { lignes.push({ type: 'li', text: node.textContent.trim() }); }
+        else if (tag === 'p') {
+          var t = node.textContent.trim();
+          if (t) lignes.push({ type: 'p', text: t });
+          else   lignes.push({ type: 'empty' });
+        } else if (tag === 'br') {
+          lignes.push({ type: 'empty' });
+        } else {
+          node.childNodes.forEach(function(child) { parcourir(child); });
+        }
+      }
+      div.childNodes.forEach(function(child) { parcourir(child); });
+      return lignes;
+    }
+
+    loadNotices();
+  </script>
+</body>
+</html>

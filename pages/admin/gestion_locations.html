@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des locations - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .filter-btn {
+      padding: 7px 16px; border-radius: 99px; border: 1.5px solid var(--border);
+      background: var(--card-bg); color: var(--muted); font-size: .82rem;
+      font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .filter-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .filter-btn.green.active { background: var(--accent); border-color: var(--accent); }
+    .filter-btn.red.active   { background: var(--danger); border-color: var(--danger); }
+    .filter-btn.blue.active  { background: #3478c8; border-color: #3478c8; }
+
+    .demande-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      margin-bottom: 16px; overflow: hidden; transition: box-shadow .2s;
+    }
+    .demande-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.12); }
+    .demande-header {
+      padding: 14px 20px; display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .demande-header-left { display: flex; align-items: center; gap: 12px; }
+    .member-avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff; font-weight: 700; font-size: .85rem;
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .member-name  { font-weight: 700; font-size: .95rem; }
+    .member-dates { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+    .statut-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 99px; font-size: .75rem; font-weight: 700;
+    }
+    .statut-badge.en_attente    { background: rgba(224,123,57,.12); color: var(--primary-d); border: 1px solid rgba(224,123,57,.3); }
+    .statut-badge.acceptee      { background: rgba(74,140,92,.12);  color: var(--accent-d);  border: 1px solid rgba(74,140,92,.3); }
+    .statut-badge.partielle     { background: rgba(74,140,92,.12);  color: var(--accent-d);  border: 1px solid rgba(74,140,92,.3); }
+    .statut-badge.refusee       { background: rgba(192,57,43,.1);   color: var(--danger);    border: 1px solid rgba(192,57,43,.2); }
+    .statut-badge.rendu         { background: rgba(52,120,200,.1);  color: #2a6cb0;          border: 1px solid rgba(52,120,200,.2); }
+    .statut-badge.rendu_partiel { background: rgba(160,100,0,.1);   color: #8a5e00;          border: 1px solid rgba(160,100,0,.2); }
+    .statut-badge.cloture       { background: rgba(100,100,100,.1); color: var(--muted);     border: 1px solid rgba(100,100,100,.2); }
+
+    .tag-partielle {
+      display: inline-flex; align-items: center;
+      padding: 4px 10px; border-radius: 99px; font-size: .72rem; font-weight: 700;
+      background: rgba(52,120,200,.1); color: #2a6cb0; border: 1px solid rgba(52,120,200,.2);
+      margin-left: 6px;
+    }
+
+    .demande-body { padding: 14px 20px; }
+    .articles-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .article-chip {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 8px; padding: 5px 12px; font-size: .82rem; color: var(--text);
+    }
+    .article-chip strong { color: var(--primary-d); }
+    .article-chip .qte-validee   { color: var(--accent-d); }
+    .article-chip .qte-partielle { color: #2a6cb0; }
+
+    .motif-affiche {
+      margin-top: 8px; font-size: .82rem; color: var(--danger);
+      background: rgba(192,57,43,.06); border-left: 3px solid var(--danger);
+      padding: 8px 12px; border-radius: 4px;
+    }
+    .demande-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .btn-verifier {
+      background: var(--primary); color: #fff; border: none;
+      padding: 8px 16px; border-radius: 8px;
+      font-size: .85rem; font-weight: 700; cursor: pointer; transition: background .15s;
+    }
+    .btn-verifier:hover { background: var(--primary-d); }
+    .btn-rendu {
+      background: rgba(52,120,200,.1); color: #2a6cb0; border: none;
+      padding: 8px 18px; border-radius: 8px;
+      font-size: .85rem; font-weight: 700; cursor: pointer; transition: background .2s;
+    }
+    .btn-rendu:hover { background: rgba(52,120,200,.2); }
+    main { display: block !important; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      border: 1px solid var(--border); padding: 10px 8px; text-align: center;
+    }
+    .stat-card .stat-number { font-size: 1.8rem; font-weight: 700; }
+    .stat-card .stat-label  { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .stat-card.orange .stat-number { color: var(--primary); }
+    .stat-card.green  .stat-number { color: var(--accent); }
+    .stat-card.red    .stat-number { color: var(--danger); }
+    .stat-card.blue   .stat-number { color: #3478c8; }
+    .stat-card.amber  .stat-number { color: #8a5e00; }
+
+    .popup-overlay {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.5); z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .popup-overlay.show { display: flex; }
+    .popup {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: 0 12px 40px rgba(0,0,0,.2);
+      width: 100%; max-width: 700px; max-height: 90vh;
+      overflow-y: auto; padding: 28px; margin: 16px;
+    }
+    .popup-title    { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    .popup-subtitle { font-size: .82rem; color: var(--muted); margin-bottom: 20px; }
+
+    .popup-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .popup-table th {
+      font-size: .75rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted);
+      padding: 8px 10px; border-bottom: 2px solid var(--border); text-align: left;
+    }
+    .popup-table td { padding: 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+
+    .btn-dec {
+      padding: 5px 12px; border-radius: 7px; border: 1.5px solid var(--border);
+      font-size: .82rem; font-weight: 600; cursor: pointer;
+      background: var(--bg); color: var(--muted); transition: all .15s;
+    }
+    .btn-dec.refuser.active { background: rgba(192,57,43,.1); border-color: var(--danger); color: var(--danger); }
+
+    .motif-select-ligne {
+      display: none; margin-top: 8px; width: 100%;
+      padding: 7px 10px; border: 1.5px solid rgba(192,57,43,.3);
+      border-radius: 7px; font-size: .85rem; color: var(--text); background: var(--card-bg);
+    }
+    .motif-select-ligne:focus { outline: none; border-color: var(--danger); }
+
+    .dispo-ok   { color: var(--accent-d); font-weight: 700; }
+    .dispo-warn { color: var(--danger);   font-weight: 700; }
+
+    .popup-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; flex-wrap: wrap; }
+    .btn-popup-annuler {
+      padding: 10px 20px; border-radius: 8px; border: 1.5px solid var(--border);
+      background: var(--bg); color: var(--muted); font-size: .9rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-popup-valider {
+      padding: 10px 24px; border-radius: 8px; border: none;
+      background: var(--accent); color: #fff;
+      font-size: .9rem; font-weight: 700; cursor: pointer; transition: background .15s;
+    }
+    .btn-popup-valider:hover { background: var(--accent-d); }
+    .btn-popup-valider:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-popup-partiel {
+      padding: 10px 20px; border-radius: 8px; border: 1.5px solid rgba(160,100,0,.3);
+      background: rgba(160,100,0,.08); color: #8a5e00;
+      font-size: .9rem; font-weight: 700; cursor: pointer; transition: all .15s;
+    }
+    .btn-popup-partiel:hover { background: rgba(160,100,0,.15); }
+
+    .btn-popup-cloture {
+      padding: 10px 20px; border-radius: 8px; border: 1.5px solid rgba(192,57,43,.3);
+      background: rgba(192,57,43,.08); color: var(--danger);
+      font-size: .9rem; font-weight: 700; cursor: pointer; transition: all .15s;
+    }
+    .btn-popup-cloture:hover { background: rgba(192,57,43,.15); }
+
+    .qte-control { display: flex; align-items: center; gap: 6px; }
+    .qte-control button {
+      width: 28px; height: 28px; border-radius: 6px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      font-size: 1rem; font-weight: 700; cursor: pointer;
+      display: grid; place-items: center; color: var(--text); transition: all .15s;
+    }
+    .qte-control button:hover { border-color: var(--primary); color: var(--primary); }
+    .qte-control input {
+      width: 52px; text-align: center; padding: 5px;
+      border: 1.5px solid var(--border); border-radius: 7px;
+      font-size: .9rem; color: var(--text); background: var(--card-bg);
+    }
+
+    .motif-retour-input {
+      width: 100%; margin-top: 16px; padding: 10px 12px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .88rem; color: var(--text); background: var(--card-bg);
+      resize: vertical; min-height: 70px; box-sizing: border-box;
+    }
+    .motif-retour-input:focus { outline: none; border-color: var(--primary); }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Gestion des prêts de matériel</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+    <div class="page-heading">
+      <div class="icon-wrap">📋</div>
+      <div>
+        <h1>Gestion des locations</h1>
+        <p>Accepter, refuser et suivre les demandes de prêt de matériel</p>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card orange"><div class="stat-number" id="stat-attente">0</div><div class="stat-label">En attente</div></div>
+      <div class="stat-card green"> <div class="stat-number" id="stat-acceptee">0</div><div class="stat-label">Acceptées</div></div>
+      <div class="stat-card red">   <div class="stat-number" id="stat-refusee">0</div><div class="stat-label">Refusées</div></div>
+      <div class="stat-card blue">  <div class="stat-number" id="stat-rendu">0</div><div class="stat-label">Rendus</div></div>
+      <div class="stat-card amber"> <div class="stat-number" id="stat-rendu-partiel">0</div><div class="stat-label">Retours partiels</div></div>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn"        onclick="setFilter('tous', this)">Toutes</button>
+      <button class="filter-btn active" onclick="setFilter('en_attente', this)">En attente</button>
+      <button class="filter-btn green"  onclick="setFilter('acceptee', this)">Acceptées</button>
+      <button class="filter-btn red"    onclick="setFilter('refusee', this)">Refusées</button>
+      <button class="filter-btn blue"   onclick="setFilter('rendu', this)">Rendus</button>
+      <button class="filter-btn"        onclick="setFilter('rendu_partiel', this)">Retours partiels</button>
+    </div>
+
+    <div id="demandes-list"></div>
+    <div class="empty-state" id="empty-state" style="display:none;">
+      <span class="empty-icon">📋</span>
+      <p>Aucune demande trouvée.</p>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold —
+    <a href="mailto:amicalesaintavold@gmail.com">Contact</a> |
+    <a href="mailto:aidemesapplis@gmail.com">Support technique</a> |
+    <a href="../../pages/mentions_legales.html">Mentions légales</a>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Popup disponibilité -->
+  <div class="popup-overlay" id="popup-overlay">
+    <div class="popup">
+      <div class="popup-title" id="popup-title">Vérification de disponibilité</div>
+      <div class="popup-subtitle" id="popup-subtitle"></div>
+      <table class="popup-table">
+        <thead>
+          <tr><th>Article</th><th>Demandé</th><th>Dispo</th><th>Décision</th></tr>
+        </thead>
+        <tbody id="popup-tbody"></tbody>
+      </table>
+      <div class="popup-footer">
+        <button class="btn-popup-annuler" onclick="fermerPopup()">Annuler</button>
+        <button class="btn-popup-valider" id="btn-popup-valider" onclick="validerDecision()" disabled>Valider</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup retour total -->
+  <div class="popup-overlay" id="popup-rendu">
+    <div class="popup" style="max-width:420px; text-align:center;">
+      <div style="font-size:2rem; margin-bottom:12px;">📦</div>
+      <div class="popup-title">Confirmer le retour</div>
+      <div class="popup-subtitle" style="margin-bottom:24px;">Tout le matériel a-t-il été rendu ?</div>
+      <div class="popup-footer" style="justify-content:center;">
+        <button class="btn-popup-annuler" onclick="fermerPopupRendu()">Annuler</button>
+        <button class="btn-popup-partiel" onclick="ouvrirRetourPartiel()">🔄 Retour partiel</button>
+        <button class="btn-popup-valider" id="btn-confirmer-rendu" onclick="confirmerRendu()">📦 Tout rendu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popup retour partiel -->
+  <div class="popup-overlay" id="popup-retour-partiel">
+    <div class="popup" style="max-width:560px;">
+      <div class="popup-title">🔄 Retour partiel</div>
+      <div class="popup-subtitle">Indiquez les quantités réellement rendues pour chaque article.</div>
+      <table class="popup-table">
+        <thead>
+          <tr><th>Article</th><th>Prêté</th><th>Rendu</th></tr>
+        </thead>
+        <tbody id="retour-partiel-tbody"></tbody>
+      </table>
+      <textarea class="motif-retour-input" id="motif-retour" placeholder="Motif du retour partiel (sera envoyé par mail aux gestionnaires)..."></textarea>
+      <div class="popup-footer" style="margin-top:16px;">
+        <button class="btn-popup-annuler" onclick="fermerRetourPartiel()">Annuler</button>
+        <button class="btn-popup-cloture" onclick="confirmerCloture()">🔒 Clôturer (perte/casse)</button>
+        <button class="btn-popup-valider" onclick="confirmerRetourPartiel()">🔄 Confirmer retour partiel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    var user = requireAuthFn(isGestionnaire);
+    if (user) {
+      var ini0 = user.nom.trim().split(' ').map(function(p) { return p[0]; }).join('').substring(0,2).toUpperCase();
+      document.getElementById('user-avatar').textContent = ini0;
+      document.getElementById('user-name').textContent   = user.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+    }
+
+    var toast = document.getElementById('toast');
+    function showToast(msg, type) {
+      toast.textContent = msg;
+      toast.className = 'toast' + (type === 'error' ? ' error' : '');
+      toast.classList.add('show');
+      setTimeout(function() { toast.classList.remove('show'); }, 3500);
+    }
+
+    var demandes       = [];
+    var motifs         = [];
+    var filtreActif    = 'en_attente';
+    var demandeEnCours = null;
+    var decisions      = {};
+    var demandeRenduId = null;
+
+    function ini(nom) {
+      return nom.trim().split(' ').map(function(p) { return p[0]; }).join('').substring(0,2).toUpperCase();
+    }
+    function formatDate(d) {
+      if (!d) return '-';
+      var p = d.split('-');
+      return p[2] + '/' + p[1] + '/' + p[0];
+    }
+
+    // ── Motifs ────────────────────────────────────────────────────
+    async function loadMotifs() {
+      motifs = await supabaseRequest('motifs_refus?select=id,libelle&order=id.asc');
+    }
+
+    // ── Demandes ──────────────────────────────────────────────────
+    async function loadDemandes() {
+      try {
+        var data = await supabaseRequest(
+          'demandes?select=*,utilisateurs(nom,mail)'
+          + ',demande_articles(id,quantite_demandee,quantite_validee,motif_refus_id,rendu,articles(id,nom,quantite_disponible,quantite_totale))'
+          + ',motifs_refus(libelle)'
+          + '&order=statut.asc,created_at.asc'
+        );
+        demandes = data || [];
+        updateStats();
+        renderDemandes();
+      } catch(err) {
+        showToast('Erreur chargement : ' + err.message, 'error');
+      }
+    }
+
+    // ── Stats ─────────────────────────────────────────────────────
+    function updateStats() {
+      document.getElementById('stat-attente').textContent       = demandes.filter(function(d) { return d.statut === 'en_attente'; }).length;
+      document.getElementById('stat-acceptee').textContent      = demandes.filter(function(d) { return d.statut === 'acceptee' || d.statut === 'partielle'; }).length;
+      document.getElementById('stat-refusee').textContent       = demandes.filter(function(d) { return d.statut === 'refusee'; }).length;
+      document.getElementById('stat-rendu').textContent         = demandes.filter(function(d) { return d.statut === 'rendu' || d.statut === 'cloture'; }).length;
+      document.getElementById('stat-rendu-partiel').textContent = demandes.filter(function(d) { return d.statut === 'rendu_partiel'; }).length;
+    }
+
+    // ── Filtre ────────────────────────────────────────────────────
+    function setFilter(filtre, btn) {
+      filtreActif = filtre;
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderDemandes();
+    }
+
+    // ── Rendu liste ───────────────────────────────────────────────
+    function renderDemandes() {
+      var list  = document.getElementById('demandes-list');
+      var empty = document.getElementById('empty-state');
+      list.innerHTML = '';
+
+      var filtered;
+      if (filtreActif === 'tous') {
+        filtered = demandes;
+      } else if (filtreActif === 'acceptee') {
+        filtered = demandes.filter(function(d) { return d.statut === 'acceptee' || d.statut === 'partielle'; });
+      } else if (filtreActif === 'rendu') {
+        filtered = demandes.filter(function(d) { return d.statut === 'rendu' || d.statut === 'cloture'; });
+      } else {
+        filtered = demandes.filter(function(d) { return d.statut === filtreActif; });
+      }
+
+      filtered.sort(function(a, b) {
+        if (a.statut === 'en_attente' && b.statut !== 'en_attente') return -1;
+        if (a.statut !== 'en_attente' && b.statut === 'en_attente') return 1;
+        return new Date(a.created_at) - new Date(b.created_at);
+      });
+
+      empty.style.display = filtered.length === 0 ? 'block' : 'none';
+
+      filtered.forEach(function(demande) {
+        var membreNom    = demande.utilisateurs ? demande.utilisateurs.nom : 'Inconnu';
+        var articles     = demande.demande_articles || [];
+        var motifLibelle = demande.motifs_refus ? demande.motifs_refus.libelle : null;
+
+        var artHtml = articles.length > 0
+          ? articles.map(function(a) {
+              var nom    = a.articles ? a.articles.nom : 'Article';
+              var qteVal = a.quantite_validee;
+              var qteInfo = '';
+              if (qteVal !== null && qteVal !== undefined) {
+                var cls = qteVal < a.quantite_demandee ? 'qte-partielle' : 'qte-validee';
+                qteInfo = ' (accordé : <strong class="' + cls + '">' + qteVal + '</strong>)';
+              }
+              return '<span class="article-chip">' + nom + ' - <strong>' + a.quantite_demandee + '</strong>' + qteInfo + '</span>';
+            }).join('')
+          : '<span style="color:var(--muted);font-size:.82rem;">Aucun article</span>';
+
+        var actionsHtml = '';
+        if (demande.statut === 'en_attente') {
+          actionsHtml = '<button class="btn-verifier" onclick="verifierDisponibilite(' + demande.id + ')">Vérifier la disponibilité</button>';
+        }
+        if (demande.statut === 'acceptee' || demande.statut === 'partielle' || demande.statut === 'rendu_partiel') {
+          actionsHtml = '<button class="btn-rendu" onclick="marquerRendu(' + demande.id + ')">📦 Gérer le retour</button>';
+        }
+
+        // Badge — construit selon le statut exact
+        var badgeHtml;
+        if (demande.statut === 'en_attente') {
+          badgeHtml = '<span class="statut-badge en_attente">En attente</span>';
+        } else if (demande.statut === 'acceptee') {
+          badgeHtml = '<span class="statut-badge acceptee">Acceptée</span>';
+        } else if (demande.statut === 'partielle') {
+          badgeHtml = '<span class="statut-badge acceptee">Acceptée</span>'
+                    + '<span class="tag-partielle">Partielle</span>';
+        } else if (demande.statut === 'refusee') {
+          badgeHtml = '<span class="statut-badge refusee">Refusée</span>';
+        } else if (demande.statut === 'rendu') {
+          badgeHtml = '<span class="statut-badge rendu">Rendu</span>';
+        } else if (demande.statut === 'rendu_partiel') {
+          badgeHtml = '<span class="statut-badge rendu_partiel">🔄 Retour partiel</span>';
+        } else if (demande.statut === 'cloture') {
+          badgeHtml = '<span class="statut-badge cloture">🔒 Clôturée</span>';
+        } else {
+          badgeHtml = '<span class="statut-badge">' + demande.statut + '</span>';
+        }
+
+        var div = document.createElement('div');
+        div.className = 'demande-card';
+        div.innerHTML =
+          '<div class="demande-header">' +
+            '<div class="demande-header-left">' +
+              '<div class="member-avatar">' + ini(membreNom) + '</div>' +
+              '<div>' +
+                '<div class="member-name">' + membreNom + '</div>' +
+                '<div class="member-dates">Du ' + formatDate(demande.date_debut) + ' au ' + formatDate(demande.date_fin) + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="display:flex;align-items:center;gap:6px;">' + badgeHtml + '</div>' +
+          '</div>' +
+          '<div class="demande-body">' +
+            '<div class="articles-list">' + artHtml + '</div>' +
+            (motifLibelle ? '<div class="motif-affiche">Motif : ' + motifLibelle + '</div>' : '') +
+            '<div class="demande-actions">' + actionsHtml + '</div>' +
+          '</div>';
+        list.appendChild(div);
+      });
+    }
+
+    // ── Vérification disponibilité ────────────────────────────────
+    async function verifierDisponibilite(id) {
+      demandeEnCours = demandes.find(function(d) { return d.id === id; });
+      if (!demandeEnCours) return;
+
+      var articles  = demandeEnCours.demande_articles || [];
+      var membreNom = demandeEnCours.utilisateurs ? demandeEnCours.utilisateurs.nom : 'Inconnu';
+
+      document.getElementById('popup-title').textContent    = 'Vérification - ' + membreNom;
+      document.getElementById('popup-subtitle').textContent =
+        'Du ' + formatDate(demandeEnCours.date_debut) + ' au ' + formatDate(demandeEnCours.date_fin);
+
+      var tbody = document.getElementById('popup-tbody');
+      tbody.innerHTML = '';
+      decisions = {};
+
+      var optionsMotifs = motifs.map(function(m) {
+        return '<option value="' + m.id + '">' + m.libelle + '</option>';
+      }).join('');
+
+      var dateDebut = demandeEnCours.date_debut;
+      var dateFin   = demandeEnCours.date_fin;
+
+      var demandesConflictuelles = await supabaseRequest(
+        'demandes?select=id,demande_articles(quantite_validee,articles(id))'
+        + '&statut=in.(acceptee,partielle)'
+        + '&date_debut=lte.' + dateFin
+        + '&date_fin=gte.' + dateDebut
+        + '&id=neq.' + demandeEnCours.id
+      );
+
+      var qtePreteeParArticle = {};
+      (demandesConflictuelles || []).forEach(function(d) {
+        (d.demande_articles || []).forEach(function(a) {
+          var artId = a.articles ? a.articles.id : null;
+          if (artId && a.quantite_validee > 0) {
+            qtePreteeParArticle[artId] = (qtePreteeParArticle[artId] || 0) + a.quantite_validee;
+          }
+        });
+      });
+
+      for (var index = 0; index < articles.length; index++) {
+        var a     = articles[index];
+        var artId = a.articles ? a.articles.id : null;
+
+        var articleActuel = await supabaseRequest('articles?id=eq.' + artId + '&select=quantite_totale,nom');
+        var qtyTotale   = (articleActuel[0] && articleActuel[0].quantite_totale) ? articleActuel[0].quantite_totale : 0;
+        var qtePretee   = qtePreteeParArticle[artId] || 0;
+        var dispo       = Math.max(0, qtyTotale - qtePretee);
+        var demandee    = a.quantite_demandee;
+        var dispoClass  = dispo >= demandee ? 'dispo-ok' : 'dispo-warn';
+        var qteAccordee = Math.min(demandee, dispo);
+
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><strong>' + (a.articles ? a.articles.nom : 'Article') + '</strong></td>' +
+          '<td>' + demandee + '</td>' +
+          '<td class="' + dispoClass + '">' + dispo + '</td>' +
+          '<td>' +
+            '<div style="display:flex; align-items:center; gap:8px;">' +
+              '<input type="number" id="qte-ligne-' + index + '" ' +
+                'value="' + qteAccordee + '" min="0" max="' + demandee + '" ' +
+                'style="width:70px; padding:6px; border:1.5px solid var(--border); border-radius:7px; font-size:.9rem; text-align:center;"' +
+                ' onchange="majDecision(' + index + ', this)">' +
+              '<button class="btn-dec refuser" onclick="forceRefus(' + index + ', this)">Refuser</button>' +
+            '</div>' +
+            '<select class="motif-select-ligne" id="motif-ligne-' + index + '">' +
+              '<option value="">-- Motif de refus --</option>' + optionsMotifs +
+            '</select>' +
+          '</td>';
+        tbody.appendChild(tr);
+
+        if (qteAccordee < demandee) {
+          tr.querySelector('.motif-select-ligne').style.display = 'block';
+        }
+        decisions[index] = { qte: qteAccordee, demandee: demandee };
+      }
+
+      document.getElementById('btn-popup-valider').disabled = false;
+      document.getElementById('popup-overlay').classList.add('show');
+    }
+
+    function majDecision(index, input) {
+      var qte = parseInt(input.value) || 0;
+      if (qte < 0) { qte = 0; input.value = 0; }
+      var max = parseInt(input.max);
+      if (qte > max) { qte = max; input.value = max; }
+      // Conserver la quantite demandee originale
+      var demandee = decisions[index] ? decisions[index].demandee : max;
+      decisions[index] = { qte: qte, demandee: demandee };
+      var motifSelect = document.getElementById('motif-ligne-' + index);
+      motifSelect.style.display = (qte === 0 || qte < max) ? 'block' : 'none';
+      if (qte >= max) motifSelect.value = '';
+    }
+
+    function forceRefus(index, btn) {
+      btn.classList.add('active');
+      document.getElementById('qte-ligne-' + index).value = 0;
+      var demandee = decisions[index] ? decisions[index].demandee : 0;
+      decisions[index] = { qte: 0, demandee: demandee };
+      document.getElementById('motif-ligne-' + index).style.display = 'block';
+    }
+
+    function fermerPopup() {
+      document.getElementById('popup-overlay').classList.remove('show');
+      decisions = {};
+      demandeEnCours = null;
+    }
+
+    // ── Validation décision ───────────────────────────────────────
+    async function validerDecision() {
+      if (!demandeEnCours) return;
+      var articles    = demandeEnCours.demande_articles || [];
+      var totalLignes = articles.length;
+      var btnValider  = document.getElementById('btn-popup-valider');
+      btnValider.disabled    = true;
+      btnValider.textContent = 'Validation...';
+
+      try {
+        var nbToutAccepte = 0;
+        var nbToutRefuse  = 0;
+
+        for (var j = 0; j < totalLignes; j++) {
+          var a           = articles[j];
+          var dec         = decisions[j];
+          var qteAccordee = dec ? dec.qte : 0;
+          var demandee    = dec ? dec.demandee : a.quantite_demandee;
+          var motifEl     = document.getElementById('motif-ligne-' + j);
+          var motifId     = motifEl && motifEl.value ? parseInt(motifEl.value) : null;
+
+          if (qteAccordee > 0) {
+            var motifAuto = null;
+            if (qteAccordee < demandee) {
+              var motifTrouve = motifs.find(function(m) { return m.libelle === 'Quantite demandee indisponible'; });
+              if (motifTrouve) motifAuto = motifTrouve.id;
+              else if (motifId) motifAuto = motifId;
+            }
+            await supabaseRequest('demande_articles?id=eq.' + a.id, {
+              method: 'PATCH',
+              body: JSON.stringify({ quantite_validee: qteAccordee, motif_refus_id: motifAuto })
+            });
+            if (qteAccordee === demandee) nbToutAccepte++;
+          } else {
+            if (!motifId) {
+              showToast('Veuillez choisir un motif pour chaque refus.', 'error');
+              btnValider.disabled    = false;
+              btnValider.textContent = 'Valider';
+              return;
+            }
+            await supabaseRequest('demande_articles?id=eq.' + a.id, {
+              method: 'PATCH',
+              body: JSON.stringify({ quantite_validee: 0, motif_refus_id: motifId })
+            });
+            nbToutRefuse++;
+          }
+        }
+
+        var statutFinal = nbToutAccepte === totalLignes ? 'acceptee'
+                        : nbToutRefuse  === totalLignes ? 'refusee'
+                        : 'partielle';
+
+        await supabaseRequest('demandes?id=eq.' + demandeEnCours.id, {
+          method: 'PATCH',
+          body: JSON.stringify({ statut: statutFinal })
+        });
+
+        // Sauvegarder avant fermerPopup() qui remet à null
+var savedDecisions = JSON.parse(JSON.stringify(decisions));
+var savedArticles = articles.slice();
+var mailDemandeur = demandeEnCours.utilisateurs ? demandeEnCours.utilisateurs.mail : '';
+var nomDemandeur  = demandeEnCours.utilisateurs ? demandeEnCours.utilisateurs.nom : '';
+var dateDebut     = demandeEnCours.date_debut;
+var dateFin       = demandeEnCours.date_fin;
+
+fermerPopup();
+await loadDemandes();
+
+var msg = statutFinal === 'acceptee' ? 'Demande acceptée !'
+        : statutFinal === 'refusee'  ? 'Demande refusée.'
+        : 'Demande partiellement acceptée.';
+showToast(msg);
+
+// Envoyer email au demandeur
+try {
+  var typeEmail = statutFinal === 'refusee' ? 'reservation_refusee' : 'reservation_approuvee';
+  var articlesAcceptes = [];
+  var articlesRefuses = [];
+  var qteTotale = 0;
+  for (var k = 0; k < savedArticles.length; k++) {
+    var art = savedArticles[k];
+    var qte = savedDecisions[k] ? savedDecisions[k].qte : 0;
+    var nomArt = art.articles ? art.articles.nom : 'Article';
+    if (qte > 0) {
+      articlesAcceptes.push(nomArt + ' (x' + qte + ')');
+      qteTotale += qte;
+    } else {
+      var motifElK = document.getElementById('motif-ligne-' + k);
+      var motifIdK = motifElK && motifElK.value ? parseInt(motifElK.value) : null;
+      var motifTrouveK = motifIdK ? motifs.find(function(m) { return m.id === motifIdK; }) : null;
+      articlesRefuses.push(nomArt + ' — ' + (motifTrouveK ? motifTrouveK.libelle : 'motif non précisé'));
+    }
+  }
+  fetch('/.netlify/functions/send-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-function-secret': 'amicale-sp-avo-2026-secret-key'
+    },
+    body: JSON.stringify({
+  type: typeEmail,
+  destinataire: mailDemandeur,
+  nom: nomDemandeur,
+  articlesAcceptes: articlesAcceptes.join('|'),
+  articlesRefuses: articlesRefuses.join('|'),
+  quantite: qteTotale,
+  dateDebut: dateDebut,
+  dateFin: dateFin
+})
+  });
+} catch(e) {}
+
+
+      } catch(err) {
+        showToast('Erreur : ' + err.message, 'error');
+        btnValider.disabled    = false;
+        btnValider.textContent = 'Valider';
+      }
+    }
+
+    // ── Retour total ──────────────────────────────────────────────
+    async function marquerRendu(id) {
+      demandeRenduId = id;
+      document.getElementById('popup-rendu').classList.add('show');
+    }
+
+    function fermerPopupRendu() {
+      document.getElementById('popup-rendu').classList.remove('show');
+      demandeRenduId = null;
+    }
+
+    async function confirmerRendu() {
+      if (!demandeRenduId) return;
+      var btn = document.getElementById('btn-confirmer-rendu');
+      btn.disabled    = true;
+      btn.textContent = 'En cours...';
+      try {
+        var demande = demandes.find(function(d) { return d.id === demandeRenduId; });
+        if (demande) {
+          for (var i = 0; i < (demande.demande_articles || []).length; i++) {
+            var a = demande.demande_articles[i];
+            if (a.quantite_validee > 0 && !a.rendu) {
+              await supabaseRequest('demande_articles?id=eq.' + a.id, {
+                method: 'PATCH',
+                body: JSON.stringify({ rendu: true })
+              });
+            }
+          }
+        }
+        await supabaseRequest('demandes?id=eq.' + demandeRenduId, {
+          method: 'PATCH',
+          body: JSON.stringify({ statut: 'rendu' })
+        });
+        fermerPopupRendu();
+        await loadDemandes();
+        showToast('📦 Matériel marqué comme rendu.');
+      } catch(err) {
+        showToast('Erreur : ' + err.message, 'error');
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = '📦 Tout rendu';
+      }
+    }
+
+    // ── Retour partiel — ouverture popup ──────────────────────────
+    function ouvrirRetourPartiel() {
+      var demande = demandes.find(function(d) { return d.id === demandeRenduId; });
+      if (!demande) return;
+      document.getElementById('popup-rendu').classList.remove('show');
+      var articles = demande.demande_articles || [];
+      var tbody    = document.getElementById('retour-partiel-tbody');
+      tbody.innerHTML = '';
+      document.getElementById('motif-retour').value = '';
+      articles.forEach(function(a, idx) {
+        var nom    = a.articles ? a.articles.nom : 'Article';
+        var pretee = a.quantite_validee || 0;
+        if (pretee === 0) return;
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td><strong>' + nom + '</strong></td>' +
+          '<td>' + pretee + '</td>' +
+          '<td>' +
+            '<div class="qte-control">' +
+              '<button type="button" onclick="decrementRetour(' + idx + ', ' + pretee + ')">−</button>' +
+              '<input type="number" id="retour-qte-' + idx + '" value="' + pretee + '" min="0" max="' + pretee + '" readonly>' +
+              '<button type="button" onclick="incrementRetour(' + idx + ', ' + pretee + ')">+</button>' +
+            '</div>' +
+          '</td>';
+        tbody.appendChild(tr);
+      });
+      document.getElementById('popup-retour-partiel').classList.add('show');
+    }
+
+    function decrementRetour(idx, max) {
+      var input = document.getElementById('retour-qte-' + idx);
+      var val = parseInt(input.value) || 0;
+      if (val > 0) input.value = val - 1;
+    }
+
+    function incrementRetour(idx, max) {
+      var input = document.getElementById('retour-qte-' + idx);
+      var val = parseInt(input.value) || 0;
+      if (val < max) input.value = val + 1;
+    }
+
+    function fermerRetourPartiel() {
+      document.getElementById('popup-retour-partiel').classList.remove('show');
+    }
+
+    // ── Confirmer retour partiel ──────────────────────────────────
+    async function confirmerRetourPartiel() {
+      var idEnCours = demandeRenduId;
+      var demande   = demandes.find(function(d) { return d.id === idEnCours; });
+      if (!demande) return;
+      var articles = demande.demande_articles || [];
+      var motif    = document.getElementById('motif-retour').value.trim();
+      if (!motif) {
+        showToast('Veuillez indiquer un motif.', 'error');
+        return;
+      }
+      try {
+        var idx = 0;
+        for (var i = 0; i < articles.length; i++) {
+          var a      = articles[i];
+          var pretee = a.quantite_validee || 0;
+          if (pretee === 0) continue;
+          var input    = document.getElementById('retour-qte-' + idx);
+          var renduQte = parseInt(input ? input.value : pretee) || 0;
+          var nonRendu = pretee - renduQte;
+          if (nonRendu > 0 && a.articles) {
+            var artId        = a.articles.id;
+            var qteTotaleAct = a.articles.quantite_totale || 0;
+            var nouvelleQte  = Math.max(0, qteTotaleAct - nonRendu);
+            await supabaseRequest('articles?id=eq.' + artId, {
+              method: 'PATCH',
+              body: JSON.stringify({ quantite_totale: nouvelleQte })
+            });
+          }
+          await supabaseRequest('demande_articles?id=eq.' + a.id, {
+            method: 'PATCH',
+            body: JSON.stringify({ rendu: renduQte === pretee })
+          });
+          idx++;
+        }
+        await supabaseRequest('demandes?id=eq.' + idEnCours, {
+          method: 'PATCH',
+          body: JSON.stringify({ statut: 'rendu_partiel' })
+        });
+        // TODO : envoyer mail aux gestionnaires+ (Netlify Functions)
+        fermerRetourPartiel();
+        demandeRenduId = null;
+        await loadDemandes();
+        showToast('🔄 Retour partiel enregistré.');
+      } catch(err) {
+        showToast('Erreur : ' + err.message, 'error');
+      }
+    }
+
+    // ── Clôturer (perte / casse) ──────────────────────────────────
+    async function confirmerCloture() {
+      var idEnCours = demandeRenduId;
+      var demande   = demandes.find(function(d) { return d.id === idEnCours; });
+      if (!demande) return;
+      var motif    = document.getElementById('motif-retour').value.trim();
+      if (!motif) {
+        showToast('Veuillez indiquer un motif de clôture.', 'error');
+        return;
+      }
+      var articles = demande.demande_articles || [];
+      try {
+        var idx = 0;
+        for (var i = 0; i < articles.length; i++) {
+          var a      = articles[i];
+          var pretee = a.quantite_validee || 0;
+          if (pretee === 0) continue;
+          var input    = document.getElementById('retour-qte-' + idx);
+          var renduQte = parseInt(input ? input.value : pretee) || 0;
+          var nonRendu = pretee - renduQte;
+          if (nonRendu > 0 && a.articles) {
+            var artId        = a.articles.id;
+            var qteTotaleAct = a.articles.quantite_totale || 0;
+            var nouvelleQte  = Math.max(0, qteTotaleAct - nonRendu);
+            await supabaseRequest('articles?id=eq.' + artId, {
+              method: 'PATCH',
+              body: JSON.stringify({ quantite_totale: nouvelleQte })
+            });
+          }
+          await supabaseRequest('demande_articles?id=eq.' + a.id, {
+            method: 'PATCH',
+            body: JSON.stringify({ rendu: true })
+          });
+          idx++;
+        }
+        await supabaseRequest('demandes?id=eq.' + idEnCours, {
+          method: 'PATCH',
+          body: JSON.stringify({ statut: 'cloture' })
+        });
+        // TODO : envoyer mail aux gestionnaires+ (Netlify Functions)
+        fermerRetourPartiel();
+        demandeRenduId = null;
+        await loadDemandes();
+        showToast('🔒 Location clôturée. Stock mis à jour.');
+      } catch(err) {
+        showToast('Erreur : ' + err.message, 'error');
+      }
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    async function init() {
+      await loadMotifs();
+      await loadDemandes();
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelector('[onclick="setFilter(\'en_attente\', this)"]').classList.add('active');
+    }
+    init();
+  </script>
+
+</body>
+</html>

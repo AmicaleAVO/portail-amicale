@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mes locations - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    /* ── Badges statut ───────────────────────────────────────── */
+    .badge-statut {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: .72rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .badge-attente  { background: rgba(224,123,57,.12); color: var(--primary); }
+    .badge-acceptee { background: rgba(74,140,92,.12);  color: var(--accent); }
+    .badge-refusee  { background: rgba(200,50,50,.12);  color: var(--danger); }
+
+    /* ── Card demande ────────────────────────────────────────── */
+    .demande-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 14px;
+      transition: box-shadow .15s;
+    }
+    .demande-card:hover { box-shadow: 0 4px 18px rgba(0,0,0,.08); }
+
+    .demande-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 18px;
+      gap: 12px;
+      flex-wrap: wrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    .demande-header:hover { background: var(--bg); }
+
+    .demande-dates {
+      font-size: .88rem;
+      font-weight: 700;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .demande-dates .sep {
+      color: var(--muted);
+      font-weight: 400;
+      font-size: .8rem;
+    }
+
+    .demande-header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle-icon {
+      color: var(--muted);
+      font-size: .8rem;
+      transition: transform .2s;
+    }
+    .demande-card.open .toggle-icon { transform: rotate(180deg); }
+
+    /* ── Corps dépliable ─────────────────────────────────────── */
+    .demande-body {
+      display: none;
+      padding: 0 18px 16px;
+      border-top: 1px solid var(--border);
+    }
+    .demande-card.open .demande-body { display: block; }
+
+    /* ── Ligne détail ────────────────────────────────────────── */
+    .detail-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px dashed var(--border);
+      font-size: .87rem;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--muted);
+      min-width: 90px;
+      padding-top: 1px;
+    }
+    .detail-value { color: var(--text); flex: 1; line-height: 1.5; }
+
+    /* ── Article item ────────────────────────────────────────── */
+    .article-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+      font-size: .78rem;
+      margin: 2px 3px 2px 0;
+    }
+    .article-qte {
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* ── Commentaire refus ───────────────────────────────────── */
+    .commentaire-refus {
+      background: rgba(200,50,50,.06);
+      border-left: 3px solid var(--danger);
+      border-radius: 0 6px 6px 0;
+      padding: 8px 12px;
+      font-size: .82rem;
+      color: var(--text);
+      margin-top: 4px;
+      line-height: 1.5;
+    }
+
+    /* ── Vide ────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+    /* ── Compteur ────────────────────────────────────────────── */
+    .compteur-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    .compteur-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 5px 14px;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .compteur-chip .nb {
+      font-size: .95rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Mes locations de matériel</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+
+    <div class="page-heading">
+      <div class="icon-wrap">📦</div>
+      <div>
+        <h1>Mes locations</h1>
+        <p>Historique de toutes vos demandes de réservation de matériel</p>
+      </div>
+    </div>
+
+    <!-- Compteurs -->
+    <div class="compteur-bar" id="compteur-bar" style="display:none;">
+      <div class="compteur-chip">🟠 En attente <span class="nb" id="nb-attente">0</span></div>
+      <div class="compteur-chip">🟢 Acceptées <span class="nb" id="nb-acceptee">0</span></div>
+      <div class="compteur-chip">🔴 Refusées <span class="nb" id="nb-refusee">0</span></div>
+    </div>
+
+    <!-- Liste des demandes -->
+    <div id="liste-demandes">
+      <div class="empty-state"><span class="empty-icon">⏳</span><p>Chargement…</p></div>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold —
+    <a href="mailto:amicalesaintavold@gmail.com">Contact</a> |
+    <a href="mailto:aidemesapplis@gmail.com">Support technique</a> |
+    <a href="../../pages/mentions_legales.html">Mentions légales</a>
+  </footer>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    var user = requireAuth();
+
+    if (user) {
+      var initials = user.nom.trim().split(' ')
+        .map(function(p) { return p[0]; }).join('').substring(0, 2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+      document.getElementById('user-name').textContent   = user.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+    }
+
+    // ── Chargement des demandes du membre ─────────────────────────
+    async function chargerMesDemandes() {
+      var liste = document.getElementById('liste-demandes');
+      try {
+        // Demandes filtrées par email du membre connecté
+        var demandes = await supabaseRequest(
+          'demandes?mail=eq.' + encodeURIComponent(user.mail)
+           + '&order=date_debut.desc'
+           + '&select=id,nom_demandeur,mail,date_debut,date_fin,statut,motif_refus_id,valide_par'
+        );
+
+        if (!demandes || demandes.length === 0) {
+          liste.innerHTML = '<div class="empty-state">'
+            + '<span class="empty-icon">📭</span>'
+            + '<p>Vous n\'avez pas encore effectué de demande de réservation.</p>'
+            + '</div>';
+          return;
+        }
+
+        // Charger les articles pour chaque demande
+        var ids = demandes.map(function(d) { return d.id; }).join(',');
+        var demandeArticles = await supabaseRequest(
+         'demande_articles?demande_id=in.(' + ids + ')&select=demande_id,quantite_demandee,quantite_validee,articles(nom)'
+        );
+
+        // Indexer les articles par demande
+        var articlesParDemande = {};
+        (demandeArticles || []).forEach(function(da) {
+          if (!articlesParDemande[da.demande_id]) {
+            articlesParDemande[da.demande_id] = [];
+          }
+          articlesParDemande[da.demande_id].push(da);
+        });
+
+        // Compteurs
+        var nbAttente = 0, nbAcceptee = 0, nbRefusee = 0;
+        demandes.forEach(function(d) {
+          if (d.statut === 'en_attente') nbAttente++;
+          else if (d.statut === 'acceptee') nbAcceptee++;
+          else if (d.statut === 'refusee') nbRefusee++;
+        });
+        document.getElementById('nb-attente').textContent  = nbAttente;
+        document.getElementById('nb-acceptee').textContent = nbAcceptee;
+        document.getElementById('nb-refusee').textContent  = nbRefusee;
+        document.getElementById('compteur-bar').style.display = 'flex';
+
+        // Rendu
+        var html = '';
+        demandes.forEach(function(d, idx) {
+          html += renderDemandeCard(d, articlesParDemande[d.id] || [], idx);
+        });
+        liste.innerHTML = html;
+
+      } catch(err) {
+        liste.innerHTML = '<div class="empty-state">'
+          + '<span class="empty-icon">❌</span>'
+          + '<p>Erreur lors du chargement : ' + err.message + '</p>'
+          + '</div>';
+      }
+    }
+
+// ── Rendu d'une card demande ──────────────────────────────────
+    function renderDemandeCard(d, articles, idx) {
+      var statut = d.statut || 'en_attente';
+      var badgeCls = 'badge-attente';
+      var badgeLabel = '🟠 En attente';
+      if (statut === 'acceptee') { badgeCls = 'badge-acceptee'; badgeLabel = '🟢 Acceptée'; }
+      if (statut === 'refusee')  { badgeCls = 'badge-refusee';  badgeLabel = '🔴 Refusée'; }
+      var dateDebut = formatDate(d.date_debut);
+      var dateFin   = formatDate(d.date_fin);
+
+      var articlesHtml = '';
+      if (articles.length === 0) {
+        articlesHtml = '<span style="color:var(--muted);font-size:.82rem;">Aucun article enregistré</span>';
+      } else {
+        articles.forEach(function(a) {
+  var nom = (a.articles && a.articles.nom) ? a.articles.nom : 'Article inconnu';
+  var qte = a.quantite_demandee || 1;
+  var qteVal = a.quantite_validee;
+  articlesHtml += '<span class="article-item">'
+    + '<span class="article-qte">' + qte + 'x</span> ' + nom;
+  if (qteVal !== null && qteVal !== undefined && statut === 'acceptee') {
+    articlesHtml += ' <span style="color:var(--muted);font-size:.72rem;">(validé : ' + qteVal + ')</span>';
+  }
+  articlesHtml += '</span>';
+});
+      }
+
+      return '<div class="demande-card" id="card-' + idx + '">'
+        + '<div class="demande-header" onclick="toggleCard(' + idx + ')">'
+        +   '<div class="demande-dates">'
+        +     '📅 ' + dateDebut
+        +     '<span class="sep">→</span>'
+        +     dateFin
+        +   '</div>'
+        +   '<div class="demande-header-right">'
+        +     '<span class="badge-statut ' + badgeCls + '">' + badgeLabel + '</span>'
+        +     '<span class="toggle-icon">▼</span>'
+        +   '</div>'
+        + '</div>'
+        + '<div class="demande-body">'
+        +   '<div class="detail-row">'
+        +     '<span class="detail-label">Période</span>'
+        +     '<span class="detail-value">Du ' + dateDebut + ' au ' + dateFin + '</span>'
+        +   '</div>'
+        +   '<div class="detail-row">'
+        +     '<span class="detail-label">Matériel</span>'
+        +     '<span class="detail-value">' + articlesHtml + '</span>'
+        +   '</div>'
+        + '</div>'
+        + '</div>';
+    }
+    
+
+    // ── Toggle dépliage card ──────────────────────────────────────
+    function toggleCard(idx) {
+      var card = document.getElementById('card-' + idx);
+      if (card) card.classList.toggle('open');
+    }
+
+    // ── Utilitaire date ───────────────────────────────────────────
+    function formatDate(str) {
+      if (!str) return '—';
+      var p = str.split('-');
+      if (p.length < 3) return str;
+      return p[2] + '/' + p[1] + '/' + p[0];
+    }
+
+    // ── Init ──────────────────────────────────────────────────────
+    chargerMesDemandes();
+  </script>
+
+</body>
+</html>

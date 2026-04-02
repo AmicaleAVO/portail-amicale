@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demandes d'accès - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    main { max-width: 960px; margin: 0 auto; padding: 32px 16px 48px; }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 28px; flex-wrap: wrap; gap: 12px;
+    }
+    .page-header h1 { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+    .badge-count {
+      background: var(--primary); color: #fff;
+      font-size: .75rem; font-weight: 700;
+      padding: 3px 10px; border-radius: 99px;
+      margin-left: 10px;
+    }
+
+    .section-title {
+      font-size: .75rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .8px;
+      color: var(--muted); margin: 28px 0 12px; padding-left: 2px;
+    }
+
+    /* ── Table ── */
+    .table-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      overflow: hidden;
+    }
+    .table-card table {
+      width: 100%; border-collapse: collapse; font-size: .88rem;
+    }
+    .table-card thead th {
+      background: var(--bg); padding: 12px 16px;
+      text-align: left; font-size: .72rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .table-card tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+    .table-card tbody tr:last-child { border-bottom: none; }
+    .table-card tbody tr:hover { background: rgba(224,123,57,.04); }
+    .table-card tbody td { padding: 14px 16px; vertical-align: middle; }
+
+    .nom-cell { font-weight: 600; color: var(--text); }
+    .mail-cell { color: var(--muted); font-size: .83rem; }
+    .date-cell { color: var(--muted); font-size: .82rem; white-space: nowrap; }
+
+    /* Statut badges */
+    .statut-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: .75rem; font-weight: 700; padding: 3px 10px;
+      border-radius: 99px;
+    }
+    .statut-badge.en_attente  { background: rgba(241,196,15,.15);  color: #b7860b; border: 1px solid rgba(241,196,15,.3); }
+    .statut-badge.approuve    { background: rgba(74,140,92,.12);   color: var(--accent-d); border: 1px solid rgba(74,140,92,.25); }
+    .statut-badge.refuse      { background: rgba(192,57,43,.08);   color: #c0392b; border: 1px solid rgba(192,57,43,.2); }
+
+    /* Boutons actions */
+    .btn-approuver, .btn-refuser {
+      border: none; padding: 7px 14px; border-radius: 8px;
+      font-size: .82rem; font-weight: 700; cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+    .btn-approuver {
+      background: rgba(74,140,92,.12); color: var(--accent-d);
+      border: 1px solid rgba(74,140,92,.25);
+    }
+    .btn-approuver:hover { background: rgba(74,140,92,.22); transform: translateY(-1px); }
+    .btn-refuser {
+      background: rgba(192,57,43,.08); color: #c0392b;
+      border: 1px solid rgba(192,57,43,.2); margin-left: 6px;
+    }
+    .btn-refuser:hover { background: rgba(192,57,43,.15); transform: translateY(-1px); }
+    .btn-refuser:disabled, .btn-approuver:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+    /* Empty state */
+    .empty-state {
+      text-align: center; padding: 40px 20px; color: var(--muted);
+    }
+    .empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+    .empty-state p { font-size: .88rem; }
+
+    /* Toast notification */
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #2D2D2D; color: #fff;
+      padding: 12px 20px; border-radius: 10px;
+      font-size: .88rem; font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,.2);
+      transform: translateY(80px); opacity: 0;
+      transition: transform .3s, opacity .3s;
+      z-index: 999;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left: 4px solid var(--accent); }
+    .toast.error   { border-left: 4px solid #c0392b; }
+
+    /* Traité par */
+    .traite-par { font-size: .78rem; color: var(--muted); }
+
+    /* Modale refus */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+}
+.modal-overlay.show { opacity: 1; pointer-events: all; }
+.modal-box {
+  background: var(--card-bg); border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0,0,0,.18);
+  padding: 28px 32px; width: 420px; max-width: 95vw;
+}
+.modal-box h3 { margin: 0 0 18px; font-size: 1rem; color: var(--text); }
+.modal-box select, .modal-box textarea {
+  width: 100%; padding: 9px 12px; border-radius: 8px;
+  border: 1px solid var(--border); font-size: .88rem;
+  background: var(--bg); color: var(--text);
+  margin-bottom: 12px; box-sizing: border-box;
+}
+.modal-box textarea { resize: vertical; min-height: 80px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+.btn-confirmer-refus {
+  background: #c0392b; color: #fff; border: none;
+  padding: 8px 18px; border-radius: 8px; font-weight: 700;
+  cursor: pointer; font-size: .88rem;
+}
+.btn-annuler-modal {
+  background: var(--bg); color: var(--muted); border: 1px solid var(--border);
+  padding: 8px 18px; border-radius: 8px; font-weight: 700;
+  cursor: pointer; font-size: .88rem;
+}
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="../../Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Demandes d'accès</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+    <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+
+    <div class="page-header">
+      <h1>
+        👥 Demandes d'accès
+        <span class="badge-count" id="badge-attente" style="display:none;">0</span>
+      </h1>
+    </div>
+
+    <!-- Demandes en attente -->
+    <div class="section-title">⏳ En attente de traitement</div>
+    <div class="table-card" id="card-attente">
+      <div class="empty-state" id="empty-attente" style="display:none;">
+        <div class="empty-icon">✅</div>
+        <p>Aucune demande en attente.</p>
+      </div>
+      <table id="table-attente" style="display:none;">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Email</th>
+            <th>Date de demande</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-attente"></tbody>
+      </table>
+    </div>
+
+    <!-- Demandes traitées -->
+    <div class="section-title">📋 Demandes traitées</div>
+    <div class="table-card">
+      <div class="empty-state" id="empty-traitees" style="display:none;">
+        <div class="empty-icon">📭</div>
+        <p>Aucune demande traitée pour le moment.</p>
+      </div>
+      <table id="table-traitees" style="display:none;">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Email</th>
+            <th>Date de demande</th>
+            <th>Statut</th>
+            <th>Traité par</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-traitees"></tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold
+  </footer>
+
+  <!-- Toast -->
+  <!-- Modale refus accès -->
+<div class="modal-overlay" id="modal-refus">
+  <div class="modal-box">
+    <h3>❌ Motif du refus</h3>
+    <select id="select-raison" onchange="toggleAutre()">
+      <option value="">-- Sélectionner un motif --</option>
+      <option value="Non membre de l'amicale">Non membre de l'amicale</option>
+      <option value="Compte déjà existant">Compte déjà existant</option>
+      <option value="Adresse email non reconnue">Adresse email non reconnue</option>
+      <option value="Demande incomplète">Demande incomplète</option>
+      <option value="Autre">Autre</option>
+    </select>
+    <textarea id="texte-autre" placeholder="Précisez le motif..." style="display:none;"></textarea>
+    <div class="modal-actions">
+      <button class="btn-annuler-modal" onclick="fermerModal()">Annuler</button>
+      <button class="btn-confirmer-refus" onclick="confirmerRefus()">Confirmer le refus</button>
+    </div>
+  </div>
+</div>
+  <div class="toast" id="toast"></div>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    const gestionnaire = requireAuthFn(isGestionnaire);
+    if (gestionnaire) {
+      const initials = gestionnaire.nom.trim().split(' ')
+        .map(p => p[0]).join('').substring(0, 2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+      document.getElementById('user-name').textContent   = gestionnaire.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(gestionnaire.role);
+    }
+
+    // ── Toast ──
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + type + ' show';
+      setTimeout(() => t.className = 'toast', 3000);
+    }
+
+    // ── Formater date ──
+    function formatDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    // ── Charger les demandes ──
+    async function chargerDemandes() {
+      try {
+        const tous = await supabaseRequest(
+          'utilisateurs?actif=eq.false&select=id,nom,mail,statut,created_at,traite_par&order=created_at.desc'
+        );
+
+        // Séparer en attente / traitées
+        // Note: on inclut aussi les approuvés non encore actifs
+        const attente  = (tous || []).filter(u => u.statut === 'en_attente');
+        const traites  = (tous || []).filter(u => u.statut === 'approuve' || u.statut === 'refuse');
+
+        // Badge
+        const badge = document.getElementById('badge-attente');
+        if (attente.length > 0) {
+          badge.textContent = attente.length;
+          badge.style.display = 'inline';
+        } else {
+          badge.style.display = 'none';
+        }
+
+        // ── Table en attente ──
+        const tbodyAttente = document.getElementById('tbody-attente');
+        tbodyAttente.innerHTML = '';
+
+        if (attente.length === 0) {
+          document.getElementById('table-attente').style.display = 'none';
+          document.getElementById('empty-attente').style.display = 'block';
+        } else {
+          document.getElementById('table-attente').style.display = 'table';
+          document.getElementById('empty-attente').style.display = 'none';
+          attente.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="nom-cell">${escHtml(u.nom)}</td>
+              <td class="mail-cell">${escHtml(u.mail)}</td>
+              <td class="date-cell">${formatDate(u.created_at)}</td>
+              <td>
+                <button class="btn-approuver" onclick="traiter(${u.id}, 'approuve', this)">✅ Approuver</button>
+                <button class="btn-refuser"   onclick="ouvrirModalRefus(${u.id}, this)">❌ Refuser</button>
+              </td>
+            `;
+            tbodyAttente.appendChild(tr);
+          });
+        }
+
+        // ── Table traitées ──
+        const tbodyTraitees = document.getElementById('tbody-traitees');
+        tbodyTraitees.innerHTML = '';
+
+        if (traites.length === 0) {
+          document.getElementById('table-traitees').style.display = 'none';
+          document.getElementById('empty-traitees').style.display = 'block';
+        } else {
+          document.getElementById('table-traitees').style.display = 'table';
+          document.getElementById('empty-traitees').style.display = 'none';
+          traites.forEach(u => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="nom-cell">${escHtml(u.nom)}</td>
+              <td class="mail-cell">${escHtml(u.mail)}</td>
+              <td class="date-cell">${formatDate(u.created_at)}</td>
+              <td>
+                <span class="statut-badge ${u.statut}">
+                  ${u.statut === 'approuve' ? '✅ Approuvée' : '❌ Refusée'}
+                </span>
+              </td>
+              <td class="traite-par">${escHtml(u.traite_par || '—')}</td>
+            `;
+            tbodyTraitees.appendChild(tr);
+          });
+        }
+
+      } catch (err) {
+        showToast('Erreur de chargement : ' + err.message, 'error');
+      }
+    }
+
+    // ── Variables pour la modale ──
+let idEnCours = null;
+let btnEnCours = null;
+
+// ── Ouvrir modale refus ──
+function ouvrirModalRefus(id, btn) {
+  idEnCours = id;
+  btnEnCours = btn;
+  document.getElementById('select-raison').value = '';
+  document.getElementById('texte-autre').value = '';
+  document.getElementById('texte-autre').style.display = 'none';
+  document.getElementById('modal-refus').classList.add('show');
+}
+
+// ── Fermer modale ──
+function fermerModal() {
+  document.getElementById('modal-refus').classList.remove('show');
+  idEnCours = null;
+  btnEnCours = null;
+}
+
+// ── Afficher/masquer champ texte libre ──
+function toggleAutre() {
+  const val = document.getElementById('select-raison').value;
+  document.getElementById('texte-autre').style.display = val === 'Autre' ? 'block' : 'none';
+}
+
+// ── Confirmer le refus depuis la modale ──
+async function confirmerRefus() {
+  const raison = document.getElementById('select-raison').value;
+  const autre = document.getElementById('texte-autre').value.trim();
+  if (!raison) { alert('Veuillez sélectionner un motif.'); return; }
+  if (raison === 'Autre' && !autre) { alert('Veuillez préciser le motif.'); return; }
+  const raisonFinale = raison === 'Autre' ? autre : raison;
+  
+  // Sauvegarder les références avant de fermer la modale
+  const id = idEnCours;
+  const btn = btnEnCours;
+  
+  fermerModal();
+  await traiter(id, 'refuse', btn, raisonFinale);
+}
+
+// ── Traiter une demande ──
+async function traiter(id, nouveauStatut, btnClique, raisonRefus = '') {
+  const row = btnClique.closest('tr');
+  const btns = row.querySelectorAll('button');
+  btns.forEach(b => b.disabled = true);
+
+  try {
+    await supabaseRequest(`utilisateurs?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        statut: nouveauStatut,
+        traite_par: gestionnaire.nom
+      })
+    });
+
+    // Récupérer les infos du demandeur
+    const users = await supabaseRequest(`utilisateurs?id=eq.${id}&select=nom,mail`);
+    const demandeur = users[0];
+
+    // Envoyer l'email
+    await fetch('/.netlify/functions/send-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-function-secret': 'amicale-sp-avo-2026-secret-key'
+      },
+      body: JSON.stringify({
+        type: nouveauStatut === 'approuve' ? 'acces_approuve' : 'acces_refuse',
+        destinataire: demandeur.mail,
+        nom: demandeur.nom,
+        raison: raisonRefus
+      })
+    });
+
+    const msg = nouveauStatut === 'approuve'
+      ? '✅ Demande approuvée — email envoyé à l\'utilisateur.'
+      : '❌ Demande refusée — email envoyé à l\'utilisateur.';
+    showToast(msg, nouveauStatut === 'approuve' ? 'success' : 'error');
+
+    await chargerDemandes();
+
+  } catch (err) {
+    showToast('Erreur : ' + err.message, 'error');
+    btns.forEach(b => b.disabled = false);
+  }
+}
+
+    // ── Échapper HTML ──
+    function escHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    // Charger au démarrage
+    chargerDemandes();
+  </script>
+
+</body>
+</html>

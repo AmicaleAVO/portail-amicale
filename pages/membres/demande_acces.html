@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demande d'accès - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .content-wrapper {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; padding: 0 16px 48px;
+    }
+    .form-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      padding: 32px 28px; width: 100%; max-width: 440px;
+      margin-top: -32px; position: relative; z-index: 1;
+    }
+    .form-card h2 {
+      font-size: 1.1rem; font-weight: 700;
+      text-align: center; margin-bottom: 8px; color: var(--text);
+    }
+    .form-card .subtitle {
+      text-align: center; font-size: .85rem;
+      color: var(--muted); margin-bottom: 24px; line-height: 1.5;
+    }
+    .field {
+      display: flex; flex-direction: column;
+      gap: 5px; margin-bottom: 16px;
+    }
+    .field label {
+      font-size: .78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+    }
+    .field input {
+      padding: 11px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: .95rem; color: var(--text);
+      background: var(--bg); transition: border-color .2s, background .2s;
+    }
+    .field input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .field input.invalid { border-color: #c0392b; background: #fff8f8; }
+    .field-error { font-size: .78rem; color: #c0392b; min-height: 16px; }
+
+    .name-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .btn-submit {
+      width: 100%; background: var(--primary); color: #fff; border: none;
+      padding: 13px; border-radius: 10px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; margin-top: 8px;
+      transition: background .2s, transform .1s;
+      box-shadow: 0 3px 10px rgba(224,123,57,.35);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-submit:hover { background: var(--primary-d); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .6s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: rgba(192,57,43,.08); border: 1px solid rgba(192,57,43,.25);
+      border-radius: 8px; padding: 12px 14px; font-size: .85rem; color: #c0392b;
+      margin-bottom: 16px; display: none; align-items: center; gap: 8px;
+    }
+    .error-box.show { display: flex; }
+
+    /* Message de succès */
+    .success-box {
+      background: rgba(74,140,92,.08); border: 1px solid rgba(74,140,92,.3);
+      border-radius: 12px; padding: 28px 24px; text-align: center;
+      display: none;
+    }
+    .success-box.show { display: block; }
+    .success-icon { font-size: 2.5rem; margin-bottom: 12px; }
+    .success-box h3 { color: var(--accent-d); font-size: 1.1rem; margin-bottom: 8px; }
+    .success-box p { color: var(--muted); font-size: .88rem; line-height: 1.6; }
+
+    .login-link {
+      text-align: center; margin-top: 20px;
+      font-size: .85rem; color: var(--muted);
+    }
+    .login-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .login-link a:hover { text-decoration: underline; }
+
+    .info-notice {
+     background: rgba(74,140,92,.07); border-left: 3px solid var(--accent);
+     border-radius: 6px; padding: 12px 14px; font-size: 1rem;
+     color: var(--text); margin-bottom: 24px; line-height: 1.5;
+     text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="../../Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Demande d'accès</div>
+    </div>
+  </header>
+
+  <div class="content-wrapper">
+    <div class="form-card">
+
+      <!-- Formulaire de demande -->
+      <div id="step-demande">
+        <h2>Demander un accès</h2>
+        <p class="subtitle">Remplissez ce formulaire pour demander l'accès au portail. Un gestionnaire validera votre demande.</p>
+
+        <div class="info-notice">
+        🔒 L'accès est réservé aux membres de<br>
+        l'Amicale des Sapeurs-Pompiers de Saint-Avold.
+        </div>
+
+        <div class="error-box" id="error-box">
+          <span>⚠️</span>
+          <span id="error-msg"></span>
+        </div>
+
+        <div class="name-row">
+          <div class="field">
+            <label for="prenom">Prénom</label>
+            <input type="text" id="prenom" placeholder="Jean" required autocomplete="given-name">
+            <div class="field-error" id="err-prenom"></div>
+          </div>
+          <div class="field">
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" placeholder="Dupont" required autocomplete="family-name">
+            <div class="field-error" id="err-nom"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="email">Adresse email</label>
+          <input type="email" id="email" placeholder="jean.dupont@exemple.fr" required autocomplete="email">
+          <div class="field-error" id="err-email"></div>
+        </div>
+
+        <button class="btn-submit" id="btn-submit" onclick="envoyerDemande()">
+          <div class="spinner" id="spinner"></div>
+          <span id="btn-label">Envoyer ma demande</span>
+        </button>
+      </div>
+
+      <!-- Message de confirmation -->
+      <div class="success-box" id="step-succes">
+        <div class="success-icon">✅</div>
+        <h3>Demande envoyée !</h3>
+        <p>
+          Votre demande a bien été enregistrée.<br><br>
+          Un gestionnaire va l'examiner et vous recevrez un email pour finaliser votre inscription à l'adresse indiquée.
+        </p>
+      </div>
+
+      <div class="login-link">
+        Déjà un compte ? <a href="login.html">Se connecter</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold
+  </footer>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    if (getSession()) window.location.href = '../accueil.html';
+
+    function showError(msg) {
+      document.getElementById('error-msg').textContent = msg;
+      document.getElementById('error-box').classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('error-box').classList.remove('show');
+    }
+    function setLoading(loading) {
+      document.getElementById('btn-submit').disabled = loading;
+      document.getElementById('spinner').style.display = loading ? 'block' : 'none';
+      document.getElementById('btn-label').textContent = loading ? 'Envoi en cours...' : 'Envoyer ma demande';
+    }
+    function clearErrors() {
+      ['prenom','nom','email'].forEach(f => {
+        document.getElementById('err-' + f).textContent = '';
+        document.getElementById(f).classList.remove('invalid');
+      });
+      hideError();
+    }
+    function setFieldError(fieldId, errId, msg) {
+      document.getElementById(errId).textContent = msg;
+      document.getElementById(fieldId).classList.add('invalid');
+    }
+
+    async function envoyerDemande() {
+      clearErrors();
+
+      const prenom = document.getElementById('prenom').value.trim();
+      const nom    = document.getElementById('nom').value.trim();
+      const email  = document.getElementById('email').value.trim();
+
+      let valid = true;
+      if (!prenom) { setFieldError('prenom', 'err-prenom', 'Prénom requis.'); valid = false; }
+      if (!nom)    { setFieldError('nom',    'err-nom',    'Nom requis.');    valid = false; }
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        setFieldError('email', 'err-email', 'Adresse email invalide.'); valid = false;
+      }
+      if (email.toLowerCase().endsWith('@sdis57.fr')) {
+      setFieldError('email', 'err-email', 'Les adresses @sdis57.fr sont interdites. Utilisez votre adresse personnelle.');
+      valid = false;
+     }
+      if (!valid) return;
+
+      setLoading(true);
+
+      try {
+        // Vérifier si cet email existe déjà
+        const existing = await supabaseRequest(
+          'utilisateurs?mail=eq.' + encodeURIComponent(email) + '&select=id,statut,actif'
+        );
+
+        if (existing && existing.length > 0) {
+          const u = existing[0];
+          if (u.actif) {
+            showError('Un compte existe déjà avec cet email. Rendez-vous sur la page de connexion.');
+          } else if (u.statut === 'en_attente') {
+            showError('Une demande est déjà en cours pour cet email. Veuillez patienter.');
+          } else if (u.statut === 'approuve') {
+            showError('Cet email a été approuvé. Rendez-vous sur la page de finalisation d\'inscription.');
+          } else if (u.statut === 'refuse') {
+            showError('Votre demande a été refusée. Contactez un administrateur pour plus d\'informations.');
+          }
+          return;
+        }
+
+        // Créer la demande dans Supabase
+        await supabaseRequest('utilisateurs', {
+          method: 'POST',
+          body: JSON.stringify({
+            nom:         prenom + ' ' + nom,
+            mail:        email,
+            mot_de_passe: null,
+            role:        'utilisateur',
+            actif:       false,
+            statut:      'en_attente'
+          })
+        });
+
+        // Envoyer email aux gestionnaires
+try {
+  await fetch('/.netlify/functions/send-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-function-secret': 'amicale-sp-avo-2026-secret-key'
+    },
+    body: JSON.stringify({
+      type: 'nouvelle_demande_acces',
+      destinataire: email,
+      nom: prenom + ' ' + nom
+    })
+  });
+} catch (e) {
+  // On ignore les erreurs d'email pour ne pas bloquer la demande
+}
+// Envoyer email de confirmation au demandeur
+try {
+  await fetch('/.netlify/functions/send-email', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-function-secret': 'amicale-sp-avo-2026-secret-key'
+    },
+    body: JSON.stringify({
+      type: 'confirmation_demande',
+      destinataire: email,
+      nom: prenom + ' ' + nom
+    })
+  });
+} catch (e) {}
+
+// Afficher la confirmation
+document.getElementById('step-demande').style.display = 'none';
+document.getElementById('step-succes').classList.add('show');
+
+      } catch (err) {
+        showError('Erreur lors de l\'envoi : ' + err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+  </script>
+
+</body>
+</html>

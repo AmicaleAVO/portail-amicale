@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mot de passe oublié - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .content-wrapper {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; padding: 0 16px 48px;
+    }
+    .form-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      padding: 32px 28px; width: 100%; max-width: 420px;
+      margin-top: 32px;
+    }
+    .form-card h2 {
+      font-size: 1.1rem; font-weight: 700;
+      text-align: center; margin-bottom: 8px; color: var(--text);
+    }
+    .form-card .subtitle {
+      text-align: center; font-size: .85rem;
+      color: var(--muted); margin-bottom: 24px; line-height: 1.5;
+    }
+    .field {
+      display: flex; flex-direction: column;
+      gap: 5px; margin-bottom: 16px;
+    }
+    .field label {
+      font-size: .78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+    }
+    .field input {
+      padding: 11px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: .95rem; color: var(--text);
+      background: var(--bg); transition: border-color .2s, background .2s;
+    }
+    .field input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .field input.invalid { border-color: #c0392b; background: #fff8f8; }
+
+    .btn-submit {
+      width: 100%; background: var(--primary); color: #fff; border: none;
+      padding: 13px; border-radius: 10px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; margin-top: 4px;
+      transition: background .2s, transform .1s;
+      box-shadow: 0 3px 10px rgba(224,123,57,.35);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-submit:hover { background: var(--primary-d); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .6s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: rgba(192,57,43,.08); border: 1px solid rgba(192,57,43,.25);
+      border-radius: 8px; padding: 12px 14px; font-size: .85rem; color: #c0392b;
+      margin-bottom: 16px; display: none; align-items: center; gap: 8px;
+    }
+    .error-box.show { display: flex; }
+    
+    .login-link {
+      text-align: center; margin-top: 20px;
+      font-size: .85rem; color: var(--muted);
+    }
+    .login-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .login-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="../../Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Mot de passe oublié</div>
+    </div>
+  </header>
+
+  <div class="content-wrapper">
+    <div class="form-card">
+
+      <h2>🔑 Réinitialiser mon mot de passe</h2>
+      <p class="subtitle">Saisissez votre adresse email pour recevoir un lien de réinitialisation.</p>
+
+      <div class="error-box" id="error-box">
+        <span>⚠️</span>
+        <span id="error-msg"></span>
+      </div>
+
+      <!-- Formulaire email -->
+      <div id="step-email">
+        <div class="field">
+          <label for="email">Adresse email</label>
+          <input type="email" id="email" placeholder="jean.dupont@exemple.fr" required autocomplete="email">
+        </div>
+
+        <button class="btn-submit" id="btn-submit" onclick="demanderReset()">
+          <div class="spinner" id="spinner"></div>
+          <span id="btn-label">Réinitialiser</span>
+        </button>
+      </div>
+
+      <div class="login-link">
+        <a href="login.html">← Retour à la connexion</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold
+  </footer>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+
+    function showError(msg) {
+      document.getElementById('error-msg').textContent = msg;
+      document.getElementById('error-box').classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('error-box').classList.remove('show');
+    }
+
+    // Génère un token aléatoire de 32 caractères hexadécimaux
+    function genererToken() {
+      const array = new Uint8Array(16);
+      crypto.getRandomValues(array);
+      return Array.from(array).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function demanderReset() {
+      hideError();
+
+      const email = document.getElementById('email').value.trim();
+      if (!email) {
+        showError('Veuillez saisir votre adresse email.');
+        document.getElementById('email').classList.add('invalid');
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit');
+      btn.disabled = true;
+      document.getElementById('spinner').style.display = 'block';
+      document.getElementById('btn-label').textContent = 'Génération...';
+
+      try {
+        // Vérifier que l'email existe et que le compte est actif
+        const results = await supabaseRequest(
+          'utilisateurs?mail=eq.' + encodeURIComponent(email) + '&actif=eq.true&select=id,nom'
+        );
+
+        // Même message si email inconnu (sécurité : évite l'énumération)
+        if (!results || results.length === 0) {
+          showError('Si cet email est associé à un compte actif, un lien a été généré.');
+          return;
+        }
+
+        const utilisateur = results[0];
+
+        // Générer le token et l'expiry (+1 heure)
+        const token  = genererToken();
+        const expiry = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+        // Enregistrer le token dans Supabase
+        await supabaseRequest('utilisateurs?id=eq.' + utilisateur.id, {
+          method: 'PATCH',
+          body: JSON.stringify({ reset_token: token, reset_token_expiry: expiry })
+        });
+
+        // Redirection directe vers la page de reset
+        const lien = window.location.origin + '/pages/membres/reset_password.html?token=' + token;
+        window.location.href = lien;
+
+      } catch (err) {
+        showError('Erreur : ' + err.message);
+      } finally {
+        btn.disabled = false;
+        document.getElementById('spinner').style.display = 'none';
+        document.getElementById('btn-label').textContent = 'Envoyer le lien';
+      }
+    }
+
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accueil - Portail Amicale</title>
+  <link rel="stylesheet" href="../CSS/style.css">
+  <style>
+    /* Styles spécifiques à accueil.html */
+    .welcome-banner {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      color: #fff;
+      margin-bottom: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .welcome-banner h1 { font-size: 1.4rem; font-weight: 700; }
+    .welcome-banner p  { font-size: .88rem; opacity: .85; margin-top: 4px; margin-bottom: 0; }
+    .welcome-emoji { font-size: 3rem; }
+
+    .section-title {
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      padding-left: 4px;
+    }
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .nav-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+      padding: 24px 20px;
+      text-decoration: none;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      transition: transform .2s, box-shadow .2s, border-color .2s;
+    }
+    .nav-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 24px rgba(0,0,0,.12);
+      border-color: var(--primary);
+    }
+    .nav-card .card-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      display: grid; place-items: center;
+      font-size: 1.5rem;
+    }
+    .nav-card .card-icon.orange { background: rgba(224,123,57,.12); }
+    .nav-card .card-icon.green  { background: rgba(74,140,92,.12); }
+    .nav-card .card-icon.blue   { background: rgba(52,120,200,.12); }
+    .nav-card .card-icon.purple { background: rgba(130,80,180,.12); }
+    .nav-card .card-title { font-size: .95rem; font-weight: 700; color: var(--text); }
+    .nav-card .card-desc  { font-size: .78rem; color: var(--muted); line-height: 1.4; }
+
+    .role-tag {
+      font-size: .68rem; font-weight: 700;
+      padding: 2px 8px; border-radius: 99px;
+      background: rgba(224,123,57,.1);
+      color: var(--primary-d);
+      border: 1px solid rgba(224,123,57,.2);
+    }
+    .nav-card { position: relative; }
+.badge-count {
+  position: absolute; top: -8px; right: -8px;
+  background: var(--danger); color: #fff;
+  font-size: .72rem; font-weight: 700;
+  min-width: 20px; height: 20px;
+  border-radius: 99px; padding: 0 5px;
+  display: grid; place-items: center;
+  box-shadow: 0 2px 6px rgba(192,57,43,.4);
+}
+  </style>
+</head>
+<body>
+
+  <!-- Header commun -->
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Accueil - Portail Amicale</div>
+      <div class="title-sub">Gestion des prêts de matériel</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Bannière bienvenue -->
+    <div class="welcome-banner">
+      <div>
+        <h1 id="welcome-title">Bonjour !</h1>
+        <p>Bienvenue sur le portail de réservation de matériel</p>
+      </div>
+      <img src="/Images/fete_amicale.png" alt="Fête Amicale" style="width:min(400px, 100%); height:auto; aspect-ratio:1; object-fit:cover; border-radius:12px; display:block; margin:0 auto;">
+    </div>
+
+    <!-- Tous les rôles -->
+    <div class="section-title">📦 Matériel & Droits</div>
+    <div class="cards-grid">
+      <a href="membres/reservations.html" class="nav-card">
+        <div class="card-icon orange">📅</div>
+        <div class="card-title">Réserver du matériel</div>
+        <div class="card-desc">Consultez le matériel disponible et faites une demande</div>
+      </a>
+      <a href="membres/calendrier_locations.html" class="nav-card">
+        <div class="card-icon blue">📅</div>
+        <div class="card-title">Calendrier des locations</div>
+        <div class="card-desc">Consultez les réservations de matériel du mois en cours</div>
+      </a>
+      <a href="membres/notices.html" class="nav-card">
+        <div class="card-icon blue">📄</div>
+        <div class="card-title">Notices</div>
+        <div class="card-desc">Consultez et imprimez les notices de l'amicale</div>
+      </a>
+      <a href="membres/mes_locations.html" class="nav-card">
+        <div class="card-icon orange">📦</div>
+        <div class="card-title">Mes locations</div>
+        <div class="card-desc">Consultez l'historique de vos demandes de réservation</div>
+      </a>
+      <a href="membres/statistiques.html" class="nav-card">
+         <div class="card-icon green">📊</div>
+         <div class="card-title">Statistiques</div>
+         <div class="card-desc">Consultez les chiffres et tendances des locations</div>
+      </a>
+      <a href="membres/droits.html" class="nav-card">
+        <div class="card-icon blue">🏅</div>
+        <div class="card-title">Vos droits</div>
+        <div class="card-desc">Consultez tous les avantages dont vous bénéficiez en tant qu'amicaliste</div>
+      </a>
+    </div>
+
+   <!-- Gestionnaire + Super Admin -->
+<div id="section-gestion" style="display:none;">
+  <div class="section-title">🔧 Gestion</div>
+  <div class="cards-grid">
+    <a href="admin/gestion_materiel.html" class="nav-card">
+      <div class="card-icon green">🪑</div>
+      <div class="card-title">Gérer le matériel</div>
+      <div class="card-desc">Ajouter, modifier ou supprimer des articles</div>
+      <span class="role-tag">Gestionnaire</span>
+    </a>
+    <a href="admin/gestion_locations.html" class="nav-card" id="card-locations">
+  <div class="card-icon green">📋</div>
+  <div class="card-title">Gérer les locations</div>
+  <div class="card-desc">Accepter, refuser et suivre les demandes</div>
+  <span class="role-tag">Gestionnaire</span>
+</a>
+    <a href="admin/gestion_notices.html" class="nav-card">
+       <div class="card-icon orange">📝</div>
+       <div class="card-title">Gestion des notices</div>
+       <div class="card-desc">Créer, modifier et publier les notices</div>
+       <span class="role-tag">Gestionnaire</span>
+    </a>
+      <a href="admin/demandes_acces_user.html" class="nav-card" id="card-acces">
+  <div class="card-icon orange">👥</div>
+  <div class="card-title">Demandes d'accès</div>
+  <div class="card-desc">Approuver ou refuser les demandes d'inscription</div>
+  <span class="role-tag">Gestionnaire</span>
+</a>
+    <a href="admin/gestion_consommables.html" class="nav-card">
+      <div class="card-icon orange">🛒</div>
+      <div class="card-title">Consommables</div>
+      <div class="card-desc">Gérer le stock et préparer les listes de courses</div>
+      <span class="role-tag">Gestionnaire</span>
+    </a>
+  </div>
+</div>
+
+<!-- Admin uniquement -->
+<div id="section-admin" style="display:none;">
+  <div class="section-title">🛡 Administration</div>
+  <div class="cards-grid">
+    <a href="admin/gestions_utilisateurs.html" class="nav-card">
+      <div class="card-icon blue">👥</div>
+      <div class="card-title">Gérer les accès</div>
+      <div class="card-desc">Utilisateurs, rôles et permissions</div>
+      <span class="role-tag">Admin</span>
+    </a>
+    <a href="admin/gestion_droits.html" class="nav-card">
+      <div class="card-icon blue">⚙️</div>
+      <div class="card-title">Gestion des droits</div>
+      <div class="card-desc">Modifier les droits et avantages des amicalistes</div>
+      <span class="role-tag">Admin</span>
+    </a>
+  </div>
+</div>
+
+<!-- Super Admin uniquement -->
+<div id="section-superadmin" style="display:none;">
+  <div class="section-title">👑 Super Administration</div>
+  <div class="cards-grid">
+    <a href="admin/parametres.html" class="nav-card">
+      <div class="card-icon purple">⚙️</div>
+      <div class="card-title">Paramètres</div>
+      <div class="card-desc">Logo et configuration du portail</div>
+      <span class="role-tag">Super Admin</span>
+    </a>
+  </div>
+</div>
+
+<div class="dev-banner">
+  <div class="dev-banner-label">Développé par</div>
+  <a href="https://appsfrancis.fr" target="_blank" rel="noopener">
+    <img src="../Images/avatarfrancis.png" alt="AppsFrancis">
+  </a>
+</div>
+
+  </main>
+
+  <footer>
+  &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold — 
+  <a href="mailto:amicalesaintavold@gmail.com">Contact</a> | 
+  <a href="mailto:aidemesapplis@gmail.com">Support technique</a> | 
+  <a href="../pages/mentions_legales.html">Mentions légales</a>
+</footer>
+
+  <script src="../js/supabase.js"></script>
+  <script>
+    const user = requireAuth();
+    if (user) {
+      const initials = user.nom.trim().split(' ')
+        .map(p => p[0]).join('').substring(0, 2).toUpperCase();
+      document.getElementById('user-avatar').textContent   = initials;
+      document.getElementById('user-name').textContent     = user.nom;
+      document.getElementById('user-role').textContent     =
+        getRoleLabel(user.role);
+      document.getElementById('welcome-title').textContent =
+        `Bonjour, ${user.nom.split(' ')[0]} !`;
+
+      if (isGestionnaire(user)) {
+  document.getElementById('section-gestion').style.display = 'block';
+  // Badge demandes en attente
+  supabaseRequest('demandes?statut=eq.en_attente&select=id').then(function(data) {
+    var count = data ? data.length : 0;
+    if (count > 0) {
+      var badge = document.createElement('div');
+      badge.className = 'badge-count';
+      badge.textContent = count;
+      document.getElementById('card-locations').appendChild(badge);
+    }
+  });
+  supabaseRequest('utilisateurs?statut=eq.en_attente&actif=eq.false&select=id').then(function(data) {
+  var count = data ? data.length : 0;
+  if (count > 0) {
+    var badge = document.createElement('div');
+    badge.className = 'badge-count';
+    badge.textContent = count;
+    document.getElementById('card-acces').appendChild(badge);
+  }
+});
+}
+      if (isAdmin(user)) {
+      document.getElementById('section-admin').style.display = 'block';
+      }
+      if (isSuperAdmin(user)) {
+      document.getElementById('section-superadmin').style.display = 'block';
+      }
+    }
+  </script>
+
+</body>
+</html>

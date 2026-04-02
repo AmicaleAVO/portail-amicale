@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des consommables - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    .add-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 120px 1fr;
+      gap: 12px; align-items: end;
+    }
+    @media (max-width: 640px) { .add-grid { grid-template-columns: 1fr 1fr; } }
+
+    .item-name { font-weight: 600; }
+    .item-desc { font-size: .78rem; color: var(--muted); }
+
+    .qty-badge {
+      display: inline-block;
+      background: rgba(74,140,92,.12); color: var(--accent-d);
+      font-weight: 700; font-size: .85rem;
+      padding: 4px 12px; border-radius: 99px;
+      border: 1px solid rgba(74,140,92,.25);
+    }
+    .btn-edit, .btn-save, .btn-cancel {
+      border: none; padding: 6px 14px; border-radius: 7px;
+      font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s;
+    }
+    .btn-edit   { background: rgba(224,123,57,.12); color: var(--primary-d); }
+    .btn-edit:hover { background: rgba(224,123,57,.22); }
+    .btn-save   { background: var(--accent); color: #fff; }
+    .btn-save:hover { background: var(--accent-d); }
+    .btn-cancel { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .btn-cancel:hover { background: var(--border); }
+    .actions-cell { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    .edit-input {
+      width: 100%; padding: 6px 8px;
+      border: 1.5px solid var(--primary); border-radius: 7px;
+      font-size: .85rem; background: transparent; margin-bottom: 4px;
+    }
+    .edit-input:focus { outline: none; }
+    .count-badge {
+      background: var(--primary); color: #fff;
+      font-size: .72rem; font-weight: 700; padding: 2px 9px; border-radius: 99px;
+    }
+    .commander-input {
+      width: 80px; padding: 6px 8px; text-align: center;
+      border: 1.5px solid var(--border); border-radius: 7px;
+      font-size: .9rem; font-weight: 700; color: var(--primary-d);
+      background: var(--bg); transition: border-color .2s;
+    }
+    .commander-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .commander-input.has-value {
+      background: rgba(224,123,57,.08);
+      border-color: var(--primary);
+      color: var(--primary-d);
+    }
+
+    /* Bouton liste */
+    .btn-liste {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--primary); color: #fff;
+      border: none; padding: 10px 20px; border-radius: 10px;
+      font-size: .9rem; font-weight: 700; cursor: pointer;
+      transition: background .2s, transform .1s;
+      box-shadow: 0 3px 10px rgba(224,123,57,.35);
+    }
+    .btn-liste:hover { background: var(--primary-d); transform: translateY(-1px); }
+    .btn-liste:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.5);
+      display: none; align-items: center; justify-content: center;
+      z-index: 100; padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: 0 12px 40px rgba(0,0,0,.2);
+      width: 100%; max-width: 580px;
+      max-height: 92vh; overflow-y: auto;
+      display: flex; flex-direction: column;
+    }
+    .modal-header {
+      background: linear-gradient(135deg, var(--primary-d) 0%, var(--primary) 60%, var(--accent) 100%);
+      padding: 20px 24px; border-radius: var(--radius) var(--radius) 0 0; color: #fff;
+      flex-shrink: 0;
+    }
+    .modal-header h2 { font-size: 1.15rem; font-weight: 700; margin: 0; }
+    .modal-header p  { font-size: .82rem; opacity: .85; margin: 4px 0 0; }
+    .modal-body { padding: 24px; flex: 1; }
+    .modal-section-label {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .6px; color: var(--muted);
+      margin: 20px 0 10px; padding-left: 2px;
+    }
+    .modal-section-label:first-child { margin-top: 0; }
+    .nom-liste-input {
+      width: 100%; padding: 10px 12px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .95rem; color: var(--text); background: var(--bg);
+      transition: border-color .2s;
+    }
+    .nom-liste-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .liste-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-radius: 8px; gap: 12px;
+      background: var(--bg); margin-bottom: 6px; border: 1px solid var(--border);
+    }
+    .liste-item-nom { font-weight: 600; font-size: .9rem; flex: 1; }
+    .liste-item-cat { font-size: .75rem; color: var(--muted); }
+    .modal-qty {
+      width: 75px; padding: 7px 8px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .88rem; background: #fff; text-align: center;
+      font-weight: 700; color: var(--primary-d);
+    }
+    .modal-qty:focus { outline: none; border-color: var(--primary); }
+    .libre-row {
+      display: grid; grid-template-columns: 1fr 80px auto;
+      gap: 8px; align-items: center; margin-bottom: 8px;
+    }
+    .libre-input {
+      padding: 8px 10px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: .88rem; background: var(--bg);
+    }
+    .libre-input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .btn-rm-libre {
+      background: rgba(192,57,43,.08); border: 1px solid rgba(192,57,43,.2);
+      color: #c0392b; cursor: pointer; font-size: .85rem;
+      padding: 7px 10px; border-radius: 8px; font-weight: 700; transition: background .15s;
+    }
+    .btn-rm-libre:hover { background: rgba(192,57,43,.15); }
+    .btn-add-libre {
+      background: none; border: 1.5px dashed var(--accent);
+      color: var(--accent); font-size: .85rem; font-weight: 600;
+      padding: 9px 14px; border-radius: 8px; cursor: pointer;
+      transition: background .2s; width: 100%; margin-top: 4px;
+    }
+    .btn-add-libre:hover { background: rgba(74,140,92,.08); }
+    .modal-footer {
+      padding: 16px 24px; border-top: 1px solid var(--border);
+      display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap;
+      background: var(--bg); border-radius: 0 0 var(--radius) var(--radius);
+      flex-shrink: 0;
+    }
+    .btn-modal-cancel {
+      background: #fff; border: 1.5px solid var(--border);
+      color: var(--muted); padding: 10px 20px; border-radius: 10px;
+      font-size: .9rem; font-weight: 600; cursor: pointer;
+    }
+    .btn-modal-cancel:hover { background: var(--bg); }
+    .btn-modal-pdf {
+      background: var(--primary); color: #fff; border: none;
+      padding: 10px 20px; border-radius: 10px;
+      font-size: .9rem; font-weight: 700; cursor: pointer;
+      transition: background .2s, transform .1s;
+      box-shadow: 0 3px 10px rgba(224,123,57,.3);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .btn-modal-pdf:hover { background: var(--primary-d); transform: translateY(-1px); }
+    .btn-modal-pdf:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .empty-liste {
+      text-align: center; padding: 16px; color: var(--muted);
+      font-size: .85rem; font-style: italic;
+    }
+    .note-mission {
+      background: rgba(0,0,0,.04); border-left: 3px solid #888;
+      border-radius: 6px; padding: 10px 14px; font-size: .8rem;
+      color: #666; margin-top: 16px; line-height: 1.5;
+      font-style: italic;
+    }
+
+    /* Listes en cours */
+    .listes-section { margin-top: 24px; }
+    .liste-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      margin-bottom: 12px; overflow: hidden;
+    }
+    .liste-card-header {
+      padding: 14px 20px; display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(224,123,57,.04);
+    }
+    .liste-card-titre { font-weight: 700; font-size: .95rem; color: var(--text); }
+    .liste-card-meta { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+    .liste-card-expiration {
+      font-size: .75rem; color: #888; font-style: italic; margin-top: 4px;
+    }
+    .liste-card-body { padding: 12px 20px; }
+    .liste-card-articles { font-size: .85rem; color: var(--muted); margin-bottom: 10px; }
+    .liste-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-liste-action {
+      border: none; padding: 7px 14px; border-radius: 8px;
+      font-size: .82rem; font-weight: 600; cursor: pointer; transition: all .15s;
+    }
+    .btn-modifier { background: rgba(224,123,57,.12); color: var(--primary-d); border: 1px solid rgba(224,123,57,.25); }
+    .btn-modifier:hover { background: rgba(224,123,57,.22); }
+    .btn-partager { background: rgba(52,120,200,.1); color: #2a6cb0; border: 1px solid rgba(52,120,200,.2); }
+    .btn-partager:hover { background: rgba(52,120,200,.2); }
+    .btn-achetee { background: rgba(74,140,92,.12); color: var(--accent-d); border: 1px solid rgba(74,140,92,.25); }
+    .btn-achetee:hover { background: rgba(74,140,92,.22); }
+    .btn-supprimer { background: rgba(192,57,43,.08); color: #c0392b; border: 1px solid rgba(192,57,43,.2); }
+    .btn-supprimer:hover { background: rgba(192,57,43,.15); }
+    .statut-achetee {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: .75rem; font-weight: 700; padding: 3px 10px;
+      border-radius: 99px; background: rgba(74,140,92,.12);
+      color: var(--accent-d); border: 1px solid rgba(74,140,92,.25);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Logo caché pour le PDF -->
+  <img id="logo-hidden" src="/Images/logo.png" style="display:none;" crossorigin="anonymous">
+
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Gestion des consommables</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+    <div class="page-heading">
+      <div class="icon-wrap">🛒</div>
+      <div>
+        <h1>Gestion des consommables</h1>
+        <p>Gérer le stock et préparer les listes de courses</p>
+      </div>
+    </div>
+
+    <!-- Ajout -->
+    <div class="card">
+      <div class="card-header"><h2>➕ Ajouter un consommable</h2></div>
+      <div class="card-body">
+        <form id="add-form">
+          <div class="add-grid">
+            <div class="field">
+              <label>Nom</label>
+              <input type="text" id="nom" placeholder="Ex : Serviettes en papier" required>
+            </div>
+            <div class="field">
+              <label>Catégorie</label>
+              <select id="categorie">
+              <option value="">-- Choisir --</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Quantité en stock</label>
+              <input type="number" id="quantite" placeholder="50" min="0" required>
+            </div>
+            <div class="field">
+              <label>Remarques</label>
+              <input type="text" id="remarques" placeholder="Optionnel">
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <button type="submit" class="btn-accent">✅ Ajouter</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Liste -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📋 Stock actuel</h2>
+        <span class="count-badge" id="count-badge">0</span>
+      </div>
+      <div style="padding: 12px 20px 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+          <input type="text" id="filtre-nom" placeholder="🔍 Rechercher un article..."
+            oninput="filtrerTable()"
+            style="padding:7px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:.85rem; width:220px;">
+          <select id="filtre-cat" onchange="filtrerTable()"
+            style="padding:7px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:.85rem; color:var(--text); background:var(--bg);">
+            <option value="">Toutes les catégories</option>
+          </select>
+        </div>
+        <button class="btn-liste" id="btn-liste" onclick="ouvrirModal()">
+          🛒 Liste de courses
+        </button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Article</th>
+              <th class="center">En stock</th>
+              <th class="center">À commander</th>
+              <th class="center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" style="display:none;">
+          <span class="empty-icon">📦</span>
+          <p>Aucun consommable enregistré.<br>Ajoutez votre premier article ci-dessus.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Listes de courses sauvegardées -->
+    <div class="card listes-section">
+      <div class="card-header">
+        <h2>📋 Listes de courses</h2>
+        <span class="count-badge" id="count-listes">0</span>
+      </div>
+      <div style="padding: 16px 20px;">
+        <div id="listes-container">
+          <div class="empty-state" id="empty-listes" style="display:none;">
+            <span class="empty-icon">🛒</span>
+            <p>Aucune liste de courses sauvegardée.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold — Contact | Mentions légales
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Modal liste de courses -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>🛒 Liste de courses</h2>
+        <p id="modal-subtitle">Vérifiez et complétez votre liste avant de partager</p>
+      </div>
+      <div class="modal-body">
+
+        <!-- Nom de la liste -->
+        <div class="modal-section-label">Nom de la liste</div>
+        <input type="text" class="nom-liste-input" id="nom-liste"
+          placeholder="Ex : Fête de la bière 2026" required>
+
+        <!-- Consommables à commander -->
+        <div class="modal-section-label">Consommables à commander</div>
+        <div id="liste-consommables"></div>
+
+        <!-- Articles libres -->
+        <div class="modal-section-label">Articles supplémentaires</div>
+        <div id="libres-container"></div>
+        <button class="btn-add-libre" onclick="ajouterLibre()">+ Ajouter un article</button>
+
+        <div class="note-mission" id="note-mission">
+          🕵️ Ce message s'auto-détruira dans 5 ans. Bonne mission !
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" onclick="fermerModal()">Annuler</button>
+        <button class="btn-modal-pdf" id="btn-generer-pdf" onclick="genererEtPartager()">
+          📤 Partager la liste
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    const user = requireAuthFn(isGestionnaire);
+    if (user) {
+      const initials = user.nom.trim().split(' ').map(p => p[0]).join('').substring(0,2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+      document.getElementById('user-name').textContent   = user.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+    }
+
+    const tableBody  = document.getElementById('table-body');
+    const emptyState = document.getElementById('empty-state');
+    const countBadge = document.getElementById('count-badge');
+    const toast      = document.getElementById('toast');
+
+    let consommables  = [];
+    let aCommander    = {};
+    let libreCount    = 0;
+    let listeEnEdition = null; // id de la liste en cours de modification
+    let categories    = [];
+
+    function showToast(msg, type = 'success') {
+      toast.textContent = msg;
+      toast.className = 'toast' + (type === 'error' ? ' error' : '');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    function majBoutonListe() {
+      const total = Object.values(aCommander).filter(v => v > 0).length;
+      const btn = document.getElementById('btn-liste');
+      btn.disabled = false;
+      btn.textContent = total > 0
+        ? `🛒 Liste de courses (${total} article${total > 1 ? 's' : ''})`
+        : '🛒 Liste de courses';
+    }
+
+    // ── Charger les consommables ──
+    async function loadConsommables() {
+      try {
+        categories = await supabaseRequest('categories_consommables?select=id,libelle&order=libelle.asc');
+        consommables = await supabaseRequest('consommables?select=*&order=nom.asc');
+        aCommander = {};
+        renderTable();
+      } catch (err) {
+        showToast('❌ Erreur chargement : ' + err.message, 'error');
+      }
+    }
+
+    function renderTable() {
+      const selCat = document.getElementById('categorie');
+      const valActuelle = selCat.value;
+      selCat.innerHTML = '<option value="">-- Choisir --</option>' +
+        categories.map(cat => `<option value="${escHtml(cat.libelle)}">${escHtml(cat.libelle)}</option>`).join('');
+      selCat.value = valActuelle;
+
+      const selFiltre = document.getElementById('filtre-cat');
+      const valFiltre = selFiltre.value;
+      selFiltre.innerHTML = '<option value="">Toutes les catégories</option>' +
+        categories.map(cat => `<option value="${escHtml(cat.libelle)}">${escHtml(cat.libelle)}</option>`).join('');
+      selFiltre.value = valFiltre;
+
+      tableBody.innerHTML = '';
+      countBadge.textContent = consommables.length;
+      emptyState.style.display = consommables.length === 0 ? 'block' : 'none';
+
+      consommables.forEach(c => {
+        const val = aCommander[c.id] || 0;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <div class="item-name">${escHtml(c.nom)}</div>
+            <div class="item-desc">${escHtml(c.categorie || '')}${c.remarques ? ' — ' + escHtml(c.remarques) : ''}</div>
+          </td>
+          <td class="center"><span class="qty-badge">${c.quantite_en_stock}</span></td>
+          <td class="center">
+            <input type="number" class="commander-input ${val > 0 ? 'has-value' : ''}"
+              min="0" value="${val > 0 ? val : ''}" placeholder="0"
+              oninput="setCommander(${c.id}, this.value, this)">
+          </td>
+          <td class="center">
+            <div class="actions-cell">
+              <button class="btn-edit"   onclick="editRow(${c.id})">✏️ Modifier</button>
+              <button class="btn-danger" onclick="deleteConsommable(${c.id}, '${c.nom.replace(/'/g, "\\'")}')">🗑 Supprimer</button>
+            </div>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      majBoutonListe();
+    }
+
+    function filtrerTable() {
+      const nom = document.getElementById('filtre-nom').value.toLowerCase();
+      const cat = document.getElementById('filtre-cat').value.toLowerCase();
+      Array.from(tableBody.rows).forEach(tr => {
+        const nomArt = tr.querySelector('.item-name')?.textContent.toLowerCase() || '';
+        const catArt = tr.querySelector('.item-desc')?.textContent.toLowerCase() || '';
+        const matchNom = !nom || nomArt.includes(nom);
+        const matchCat = !cat || catArt.includes(cat);
+        tr.style.display = matchNom && matchCat ? '' : 'none';
+      });
+    }
+
+    function setCommander(id, val, input) {
+      const n = parseInt(val) || 0;
+      if (n > 0) { aCommander[id] = n; input.classList.add('has-value'); }
+      else       { delete aCommander[id]; input.classList.remove('has-value'); }
+      majBoutonListe();
+    }
+
+    // ── Ajouter ──
+    document.getElementById('add-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nom       = document.getElementById('nom').value.trim();
+      const categorie = document.getElementById('categorie').value.trim();
+      const quantite  = parseInt(document.getElementById('quantite').value) || 0;
+      const remarques = document.getElementById('remarques').value.trim();
+      try {
+        await supabaseRequest('consommables', {
+          method: 'POST',
+          body: JSON.stringify({ nom, categorie, quantite_en_stock: quantite, remarques: remarques || null })
+        });
+        await loadConsommables();
+        e.target.reset();
+        showToast('✅ Consommable ajouté !');
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    });
+
+    // ── Supprimer ──
+    async function deleteConsommable(id, nom) {
+      if (!confirm(`Supprimer "${nom}" ?`)) return;
+      try {
+        await supabaseRequest(`consommables?id=eq.${id}`, { method: 'DELETE' });
+        delete aCommander[id];
+        await loadConsommables();
+        showToast(`🗑 "${nom}" supprimé.`);
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    // ── Modifier inline ──
+    function editRow(id) {
+      const c = consommables.find(x => x.id === id);
+      const tr = Array.from(tableBody.rows).find(r => r.querySelector(`[onclick="editRow(${id})"]`));
+      const valCmd = aCommander[id] || 0;
+      tr.innerHTML = `
+        <td>
+          <input type="text"   class="edit-input" id="edit-nom-${id}" value="${escHtml(c.nom)}" placeholder="Nom">
+          <select class="edit-input" id="edit-cat-${id}">
+            <option value="">-- Choisir --</option>
+           ${categories.map(cat => `<option value="${escHtml(cat.libelle)}" ${c.categorie === cat.libelle ? 'selected' : ''}>${escHtml(cat.libelle)}</option>`).join('')}
+            </select>
+          <input type="text"   class="edit-input" id="edit-rem-${id}" value="${escHtml(c.remarques || '')}" placeholder="Remarques">
+        </td>
+        <td class="center">
+          <input type="number" class="edit-input" id="edit-qty-${id}" value="${c.quantite_en_stock}" min="0" style="width:70px;text-align:center;">
+        </td>
+        <td class="center">
+          <input type="number" class="commander-input ${valCmd > 0 ? 'has-value' : ''}" min="0"
+            value="${valCmd > 0 ? valCmd : ''}" placeholder="0"
+            oninput="setCommander(${id}, this.value, this)">
+        </td>
+        <td class="center">
+          <div class="actions-cell">
+            <button class="btn-save"   onclick="saveRow(${id})">💾 Enregistrer</button>
+            <button class="btn-cancel" onclick="renderTable()">Annuler</button>
+          </div>
+        </td>
+      `;
+    }
+
+    async function saveRow(id) {
+      const nom       = document.getElementById(`edit-nom-${id}`).value.trim();
+      const categorie = document.getElementById(`edit-cat-${id}`).value.trim();
+      const remarques = document.getElementById(`edit-rem-${id}`).value.trim();
+      const qty       = parseInt(document.getElementById(`edit-qty-${id}`).value) || 0;
+      if (!nom) { showToast('⚠ Nom requis.', 'error'); return; }
+      try {
+        await supabaseRequest(`consommables?id=eq.${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ nom, categorie, remarques: remarques || null, quantite_en_stock: qty })
+        });
+        await loadConsommables();
+        showToast('✅ Modifications enregistrées !');
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    // ── Modal ──
+    function ouvrirModal(listeData) {
+      listeEnEdition = listeData ? listeData.id : null;
+      aCommander = {};
+
+      // Si on modifie une liste existante, repeupler aCommander
+      if (listeData && listeData.articles) {
+        const arts = listeData.articles;
+        if (arts.consommables) {
+          arts.consommables.forEach(a => {
+            const conso = consommables.find(c => c.nom === a.nom);
+            if (conso) aCommander[conso.id] = a.qte;
+          });
+        }
+      }
+
+      const items = consommables.filter(c => aCommander[c.id] > 0);
+      const container = document.getElementById('liste-consommables');
+      container.innerHTML = '';
+
+      if (items.length === 0) {
+        container.innerHTML = '<div class="empty-liste">Aucun consommable sélectionné. Vous pouvez ajouter des articles supplémentaires ci-dessous.</div>';
+      } else {
+        items.forEach(c => {
+          const div = document.createElement('div');
+          div.className = 'liste-item';
+          div.innerHTML = `
+            <div>
+              <div class="liste-item-nom">${escHtml(c.nom)}</div>
+              ${c.categorie ? `<div class="liste-item-cat">${escHtml(c.categorie)}</div>` : ''}
+            </div>
+            <input type="number" class="modal-qty" min="1"
+              value="${aCommander[c.id]}"
+              oninput="setCommander(${c.id}, this.value, {classList:{add:()=>{},remove:()=>{}}})">
+          `;
+          container.appendChild(div);
+        });
+      }
+
+      // Articles libres
+      const libresContainer = document.getElementById('libres-container');
+      libresContainer.innerHTML = '';
+      libreCount = 0;
+
+      if (listeData && listeData.articles && listeData.articles.libres) {
+        listeData.articles.libres.forEach(l => {
+          libreCount++;
+          const div = document.createElement('div');
+          div.className = 'libre-row';
+          div.id = `libre-${libreCount}`;
+          div.innerHTML = `
+            <input type="text"   class="libre-input" id="libre-nom-${libreCount}" placeholder="Ex : Saucisses" value="${escHtml(l.nom)}">
+            <input type="number" class="modal-qty"   id="libre-qty-${libreCount}" placeholder="Qté" min="1" value="${l.qty}">
+            <button class="btn-rm-libre" onclick="document.getElementById('libre-${libreCount}').remove()">✕</button>
+          `;
+          libresContainer.appendChild(div);
+        });
+      }
+
+      // Nom de la liste
+      document.getElementById('nom-liste').value = listeData ? listeData.nom : '';
+
+      // Message Mission Impossible
+      const dateExp = new Date();
+      dateExp.setFullYear(dateExp.getFullYear() + 5);
+      const dateExpStr = dateExp.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      document.getElementById('note-mission').textContent =
+        `🕵️ Ce message s'auto-détruira le ${dateExpStr}. Bonne mission !`;
+
+      const nbItems = Object.values(aCommander).filter(v => v > 0).length;
+      document.getElementById('modal-subtitle').textContent =
+        listeData ? `Modification de "${listeData.nom}"` :
+        `${nbItems} article${nbItems > 1 ? 's' : ''} à commander`;
+
+      document.getElementById('modal-overlay').classList.add('show');
+    }
+
+    function fermerModal() {
+      document.getElementById('modal-overlay').classList.remove('show');
+      listeEnEdition = null;
+    }
+
+    function ajouterLibre() {
+      libreCount++;
+      const div = document.createElement('div');
+      div.className = 'libre-row';
+      div.id = `libre-${libreCount}`;
+      div.innerHTML = `
+        <input type="text"   class="libre-input" id="libre-nom-${libreCount}" placeholder="Ex : Saucisses">
+        <input type="number" class="modal-qty"   id="libre-qty-${libreCount}" placeholder="Qté" min="1">
+        <button class="btn-rm-libre" onclick="document.getElementById('libre-${libreCount}').remove()">✕</button>
+      `;
+      document.getElementById('libres-container').appendChild(div);
+      document.getElementById(`libre-nom-${libreCount}`).focus();
+    }
+
+    function getLibres() {
+      const libres = [];
+      for (let i = 1; i <= libreCount; i++) {
+        const nomEl = document.getElementById(`libre-nom-${i}`);
+        const qtyEl = document.getElementById(`libre-qty-${i}`);
+        if (nomEl && nomEl.value.trim()) {
+          libres.push({ nom: nomEl.value.trim(), qty: parseInt(qtyEl?.value) || 0 });
+        }
+      }
+      return libres;
+    }
+
+    // ── Générer PDF (retourne le blob) ──
+    function genererPDFBlob(nomListe, items, libres) {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+      const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      const W = 210, margin = 18;
+
+      doc.setFillColor(196, 98, 42);
+      doc.rect(0, 0, W, 38, 'F');
+      doc.setFillColor(74, 140, 92);
+      doc.rect(0, 35, W, 3, 'F');
+
+      try {
+        const logoImg = document.getElementById('logo-hidden');
+        if (logoImg && logoImg.complete && logoImg.naturalWidth > 0) {
+          const canvas = document.createElement('canvas');
+          canvas.width = logoImg.naturalWidth;
+          canvas.height = logoImg.naturalHeight;
+          canvas.getContext('2d').drawImage(logoImg, 0, 0);
+          const maxH = 26;
+          const ratio = logoImg.naturalWidth / logoImg.naturalHeight;
+          doc.addImage(canvas.toDataURL('image/png'), 'PNG', margin, 5, maxH * ratio, maxH);
+        }
+      } catch(e) {}
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(17); doc.setFont('helvetica', 'bold');
+      doc.text('LISTE DE COURSES', margin + 30, 16);
+      doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+      doc.text('Amicale des Sapeurs-Pompiers de Saint-Avold', margin + 30, 23);
+      if (nomListe) {
+        doc.setFontSize(11); doc.setFont('helvetica', 'bolditalic');
+        doc.text(nomListe, margin + 30, 31);
+      }
+
+      let y = 48;
+      doc.setTextColor(80, 80, 80);
+      doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+      doc.text(`Créée par : ${user.nom}`, margin, y);
+      doc.text(`Date : ${dateStr}`, W - margin, y, { align: 'right' });
+      y += 8;
+
+      doc.setDrawColor(220, 210, 200);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, W - margin, y);
+      y += 8;
+
+      if (items.length > 0) {
+        doc.setFillColor(224, 123, 57);
+        doc.rect(margin, y, W - margin * 2, 7, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+        doc.text('CONSOMMABLES A COMMANDER', margin + 3, y + 5);
+        y += 10;
+
+        doc.setFillColor(250, 244, 238);
+        doc.rect(margin, y, W - margin * 2, 6, 'F');
+        doc.setTextColor(150, 100, 60);
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+        doc.text('Article', margin + 3, y + 4);
+        doc.text('Catégorie', margin + 95, y + 4);
+        doc.text('Qté', W - margin - 3, y + 4, { align: 'right' });
+        y += 8;
+
+        items.forEach((c, idx) => {
+          if (y > 265) { doc.addPage(); y = 20; }
+          if (idx % 2 === 0) {
+            doc.setFillColor(253, 250, 247);
+            doc.rect(margin, y - 1, W - margin * 2, 7, 'F');
+          }
+          doc.setTextColor(45, 45, 45);
+          doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+          doc.text(c.nom, margin + 3, y + 4);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(130, 130, 130);
+          doc.text(c.categorie || '—', margin + 95, y + 4);
+          doc.setTextColor(196, 98, 42);
+          doc.setFont('helvetica', 'bold');
+          doc.text(`${aCommander[c.id] || c.qte || ''}`, W - margin - 3, y + 4, { align: 'right' });
+          y += 7;
+        });
+        y += 6;
+      }
+
+      if (libres.length > 0) {
+        if (y > 265) { doc.addPage(); y = 20; }
+        doc.setFillColor(74, 140, 92);
+        doc.rect(margin, y, W - margin * 2, 7, 'F');
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+        doc.text('ARTICLES SUPPLEMENTAIRES', margin + 3, y + 5);
+        y += 10;
+
+        doc.setFillColor(245, 250, 246);
+        doc.rect(margin, y, W - margin * 2, 6, 'F');
+        doc.setTextColor(60, 100, 70);
+        doc.setFontSize(8); doc.setFont('helvetica', 'bold');
+        doc.text('Article', margin + 3, y + 4);
+        doc.text('Qté', W - margin - 3, y + 4, { align: 'right' });
+        y += 8;
+
+        libres.forEach((l, idx) => {
+          if (y > 265) { doc.addPage(); y = 20; }
+          if (idx % 2 === 0) {
+            doc.setFillColor(248, 253, 249);
+            doc.rect(margin, y - 1, W - margin * 2, 7, 'F');
+          }
+          doc.setTextColor(45, 45, 45);
+          doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+          doc.text(l.nom, margin + 3, y + 4);
+          doc.setTextColor(74, 140, 92);
+          doc.text(`${l.qty}`, W - margin - 3, y + 4, { align: 'right' });
+          y += 7;
+        });
+        y += 6;
+      }
+
+      const footY = 282;
+      doc.setFillColor(247, 244, 240);
+      doc.rect(0, footY, W, 15, 'F');
+      doc.setFillColor(74, 140, 92);
+      doc.rect(0, footY, 3, 15, 'F');
+      doc.setTextColor(120, 120, 120);
+      doc.setFontSize(7.5); doc.setFont('helvetica', 'italic');
+      doc.text('Document généré automatiquement — Portail Amicale des Sapeurs-Pompiers de Saint-Avold', margin, footY + 5);
+      doc.setTextColor(196, 98, 42); doc.setFont('helvetica', 'bold');
+      doc.text('Pensez a mettre a jour le stock apres la manifestation.', margin, footY + 11);
+
+      return doc.output('blob');
+    }
+
+    // ── Partager le PDF ──
+    async function partagerPDF(pdfBlob, nomListe) {
+      const fileName = nomListe
+        ? `liste-courses-${nomListe.replace(/\s+/g, '-').toLowerCase()}.pdf`
+        : `liste-courses-${new Date().toISOString().slice(0, 10)}.pdf`;
+
+      if (navigator.share) {
+        try {
+          const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+          if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+            await navigator.share({
+              title: nomListe || 'Liste de courses',
+              text: 'Liste de courses — Amicale SP Saint-Avold',
+              files: [pdfFile]
+            });
+            return;
+          }
+        } catch(e) {
+          if (e.name !== 'AbortError') console.log('Partage natif échoué:', e);
+        }
+      }
+      // Fallback : téléchargement
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Générer et partager depuis la modale ──
+    async function genererEtPartager() {
+      const nomListe = document.getElementById('nom-liste').value.trim();
+      if (!nomListe) {
+        showToast('⚠ Veuillez donner un nom à la liste.', 'error');
+        document.getElementById('nom-liste').focus();
+        return;
+      }
+
+      const items  = consommables.filter(c => aCommander[c.id] > 0);
+      const libres = getLibres();
+
+      if (items.length === 0 && libres.length === 0) {
+        showToast('⚠ La liste est vide.', 'error'); return;
+      }
+
+      const btn = document.getElementById('btn-generer-pdf');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Préparation...';
+
+      try {
+        const pdfBlob = genererPDFBlob(nomListe, items, libres);
+
+        // Sauvegarder dans Supabase
+        const articlesData = {
+          consommables: items.map(c => ({ nom: c.nom, categorie: c.categorie, qte: aCommander[c.id] })),
+          libres: libres
+        };
+        const dateExpiration = new Date();
+        dateExpiration.setFullYear(dateExpiration.getFullYear() + 5);
+
+        if (listeEnEdition) {
+          // Modifier liste existante
+          await supabaseRequest(`listes_courses?id=eq.${listeEnEdition}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ nom: nomListe, articles: articlesData })
+          });
+        } else {
+          // Nouvelle liste
+          await supabaseRequest('listes_courses', {
+            method: 'POST',
+            body: JSON.stringify({
+              nom: nomListe,
+              articles: articlesData,
+              statut: 'en_cours',
+              created_by: user.nom,
+              date_expiration: dateExpiration.toISOString()
+            })
+          });
+        }
+
+        // Partager
+        await partagerPDF(pdfBlob, nomListe);
+
+        aCommander = {};
+        fermerModal();
+        await chargerListesCourses();
+        renderTable();
+        showToast('✅ Liste sauvegardée !');
+
+      } catch(err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '📤 Partager la liste';
+      }
+    }
+
+    // ── Charger les listes de courses ──
+    async function chargerListesCourses() {
+      try {
+        // Supprimer les listes expirées
+        const maintenant = new Date().toISOString();
+        await supabaseRequest(`listes_courses?date_expiration=lt.${maintenant}`, { method: 'DELETE' });
+
+        const listes = await supabaseRequest('listes_courses?order=created_at.desc');
+        afficherListesCourses(listes || []);
+      } catch(err) {
+        console.log('Erreur chargement listes:', err);
+      }
+    }
+
+    function afficherListesCourses(listes) {
+      const container = document.getElementById('listes-container');
+      const emptyListes = document.getElementById('empty-listes');
+      const countListes = document.getElementById('count-listes');
+
+      countListes.textContent = listes.length;
+      container.innerHTML = '';
+
+      if (listes.length === 0) {
+        emptyListes.style.display = 'block';
+        container.appendChild(emptyListes);
+        return;
+      }
+
+      emptyListes.style.display = 'none';
+
+      listes.forEach(liste => {
+        const dateCreation = new Date(liste.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        const dateExp = new Date(liste.date_expiration).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+        const arts = liste.articles || {};
+        const nbConso = (arts.consommables || []).length;
+        const nbLibres = (arts.libres || []).length;
+        const resumeArticles = [
+          nbConso > 0 ? `${nbConso} consommable${nbConso > 1 ? 's' : ''}` : '',
+          nbLibres > 0 ? `${nbLibres} article${nbLibres > 1 ? 's' : ''} supplémentaire${nbLibres > 1 ? 's' : ''}` : ''
+        ].filter(Boolean).join(', ') || 'Liste vide';
+
+        const div = document.createElement('div');
+        div.className = 'liste-card';
+        div.innerHTML = `
+          <div class="liste-card-header">
+            <div>
+              <div class="liste-card-titre">🛒 ${escHtml(liste.nom)}</div>
+              <div class="liste-card-meta">Créée le ${dateCreation} par ${escHtml(liste.created_by || '—')}</div>
+              <div class="liste-card-expiration">🕵️ Ce message s'auto-détruira le ${dateExp}</div>
+            </div>
+            ${liste.statut === 'achetee' ? '<span class="statut-achetee">✅ Achetée</span>' : ''}
+          </div>
+          <div class="liste-card-body">
+            <div class="liste-card-articles">${resumeArticles}</div>
+            <div class="liste-card-actions">
+              ${liste.statut === 'en_cours' ? `
+                <button class="btn-liste-action btn-modifier" onclick="modifierListe(${liste.id})">✏️ Modifier</button>
+                <button class="btn-liste-action btn-partager" onclick="partagerListeSauvegardee(${liste.id})">📤 Partager</button>
+                <button class="btn-liste-action btn-achetee" onclick="archiverListe(${liste.id})">✅ Achetée</button>
+              ` : ''}
+              <button class="btn-liste-action btn-supprimer" onclick="supprimerListe(${liste.id})">🗑️ Supprimer</button>
+            </div>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    // ── Modifier une liste ──
+    function modifierListe(id) {
+      supabaseRequest(`listes_courses?id=eq.${id}`).then(data => {
+        if (data && data[0]) ouvrirModal(data[0]);
+      });
+    }
+
+    // ── Partager une liste sauvegardée ──
+    async function partagerListeSauvegardee(id) {
+      try {
+        const data = await supabaseRequest(`listes_courses?id=eq.${id}`);
+        if (!data || !data[0]) return;
+        const liste = data[0];
+        const arts = liste.articles || {};
+        const items = (arts.consommables || []).map(a => {
+          const conso = consommables.find(c => c.nom === a.nom);
+          return conso ? { ...conso, qte: a.qte } : { nom: a.nom, categorie: a.categorie || '', qte: a.qte };
+        });
+        // Temporairement peupler aCommander pour le PDF
+        const savedACommander = { ...aCommander };
+        items.forEach(a => {
+          const conso = consommables.find(c => c.nom === a.nom);
+          if (conso) aCommander[conso.id] = a.qte;
+        });
+        const pdfBlob = genererPDFBlob(liste.nom, items, arts.libres || []);
+        aCommander = savedACommander;
+        await partagerPDF(pdfBlob, liste.nom);
+      } catch(err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    // ── Archiver une liste ──
+    async function archiverListe(id) {
+      try {
+        await supabaseRequest(`listes_courses?id=eq.${id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ statut: 'achetee' })
+        });
+        await chargerListesCourses();
+        showToast('✅ Liste marquée comme achetée !');
+      } catch(err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    // ── Supprimer une liste ──
+    async function supprimerListe(id) {
+      if (!confirm('Supprimer définitivement cette liste ?')) return;
+      try {
+        await supabaseRequest(`listes_courses?id=eq.${id}`, { method: 'DELETE' });
+        await chargerListesCourses();
+        showToast('🗑️ Liste supprimée.');
+      } catch(err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    function escHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    async function init() {
+      await loadConsommables();
+      await chargerListesCourses();
+    }
+
+    init();
+  </script>
+
+</body>
+</html>

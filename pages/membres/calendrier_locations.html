@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendrier des locations - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .mois-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; }
+    .mois-titre { font-size: 1.15rem; font-weight: 700; color: var(--text); text-transform: capitalize; }
+    .btn-mois {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+      padding: 7px 14px; font-size: .88rem; font-weight: 600; cursor: pointer;
+      color: var(--text); transition: background .15s, border-color .15s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-mois:hover { background: var(--border); border-color: var(--primary); }
+    .btn-aujourd-hui { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .btn-aujourd-hui:hover { background: var(--primary-d); }
+
+    .legende { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; font-size: .78rem; font-weight: 600; }
+    .legende-item { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+    .legende-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .dot-attente       { background: var(--primary); }
+    .dot-acceptee      { background: var(--accent); }
+    .dot-refusee       { background: var(--danger); }
+    .dot-partielle     { background: #2a6cb0; }
+    .dot-rendu-partiel { background: #b07800; }
+    .dot-rendu         { background: #999; }
+    .dot-cloture       { background: #555; }
+
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-header-cell {
+      text-align: center; font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted); padding: 8px 4px; background: var(--bg); border-radius: 6px;
+    }
+    .cal-cell {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px;
+      min-height: 90px; padding: 6px; position: relative; transition: border-color .15s;
+    }
+    .cal-cell.autre-mois { background: rgba(0,0,0,.02); opacity: .5; }
+    .cal-cell.aujourd-hui { border-color: var(--primary); border-width: 2px; }
+    .cal-jour { font-size: .78rem; font-weight: 700; color: var(--muted); margin-bottom: 4px; }
+    .cal-cell.aujourd-hui .cal-jour { color: var(--primary); }
+
+    .resa-pill {
+      display: block; border-radius: 4px; padding: 2px 5px; font-size: .68rem; font-weight: 600;
+      margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      cursor: default; position: relative; color: #fff;
+    }
+    .resa-pill.cliquable { cursor: pointer; }
+    .resa-pill.cliquable:hover { filter: brightness(1.1); }
+    .pill-attente       { background: var(--primary); }
+    .pill-acceptee      { background: var(--accent); }
+    .pill-partielle     { background: #2a6cb0; }
+    .pill-refusee       { background: var(--danger); }
+    .pill-rendu-partiel { background: #b07800; }
+    .pill-rendu         { background: #999; }
+    .pill-cloture       { background: #555; }
+
+    .resa-dots { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 4px; justify-content: center; }
+    .resa-dot { width: 7px; height: 7px; border-radius: 50%; cursor: pointer; flex-shrink: 0; }
+    .resa-dot.dot-attente       { background: var(--primary); }
+    .resa-dot.dot-acceptee      { background: var(--accent); }
+    .resa-dot.dot-partielle     { background: #2a6cb0; }
+    .resa-dot.dot-refusee       { background: var(--danger); }
+    .resa-dot.dot-rendu-partiel { background: #b07800; }
+    .resa-dot.dot-rendu         { background: #999; }
+    .resa-dot.dot-cloture       { background: #555; }
+
+    @media (max-width: 600px) {
+      .cal-grid { gap: 1px; }
+      .cal-header-cell { font-size: .6rem; padding: 5px 2px; letter-spacing: 0; }
+      .cal-cell { min-height: 48px; padding: 4px 2px; border-radius: 5px; }
+      .cal-jour { font-size: .7rem; text-align: center; margin-bottom: 2px; }
+      .resa-pill { display: none; }
+      .plus-resa { display: none; }
+      .resa-dots { display: flex; }
+      .mois-titre { font-size: .95rem; }
+      .btn-mois { padding: 6px 10px; font-size: .78rem; }
+    }
+    @media (min-width: 601px) { .resa-dots { display: none; } }
+
+    .tooltip-box {
+      display: none; position: fixed; z-index: 500; background: #1a1a1a; color: #fff;
+      border-radius: 10px; padding: 10px 14px; font-size: .78rem; max-width: 240px;
+      line-height: 1.6; pointer-events: none; box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    }
+    .tooltip-box.visible { display: block; }
+    .tooltip-title { font-weight: 700; font-size: .82rem; margin-bottom: 4px; color: var(--primary); }
+
+    .popup-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45);
+      z-index: 1000; align-items: center; justify-content: center; padding: 16px;
+    }
+    .popup-overlay.show { display: flex; }
+    .popup-detail {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: 0 16px 48px rgba(0,0,0,.22); width: 100%; max-width: 460px; overflow: hidden;
+    }
+    .popup-header {
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    }
+    .popup-header h3 { font-size: 1rem; font-weight: 700; margin: 0; }
+    .popup-body { padding: 20px; }
+    .detail-row {
+      display: flex; align-items: flex-start; gap: 10px; padding: 8px 0;
+      border-bottom: 1px dashed var(--border); font-size: .87rem;
+    }
+    .detail-row:last-child { border-bottom: none; }
+    .detail-label {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .5px; color: var(--muted); min-width: 80px; padding-top: 1px;
+    }
+    .detail-value { color: var(--text); flex: 1; }
+    .btn-fermer {
+      background: none; border: none; font-size: 1.2rem; cursor: pointer;
+      color: var(--muted); padding: 2px 6px; border-radius: 6px;
+    }
+    .btn-fermer:hover { background: var(--border); }
+    .plus-resa { font-size: .65rem; color: var(--muted); font-weight: 600; padding: 1px 4px; cursor: default; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Calendrier des locations</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+    <div class="page-heading">
+      <div class="icon-wrap">📅</div>
+      <div>
+        <h1>Calendrier des locations</h1>
+        <p>Vue mensuelle des réservations de matériel</p>
+      </div>
+    </div>
+
+    <div class="mois-nav">
+      <button class="btn-mois" onclick="changerMois(-1)">◀ Mois précédent</button>
+      <div class="mois-titre" id="mois-titre"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-mois btn-aujourd-hui" onclick="allerAujourdhui()">Aujourd'hui</button>
+        <button class="btn-mois" onclick="changerMois(1)">Mois suivant ▶</button>
+      </div>
+    </div>
+
+    <div class="legende">
+      <div class="legende-item"><span class="legende-dot dot-attente"></span> En attente</div>
+      <div class="legende-item"><span class="legende-dot dot-acceptee"></span> Acceptée</div>
+      <div class="legende-item"><span class="legende-dot dot-partielle"></span> Partielle</div>
+      <div class="legende-item"><span class="legende-dot dot-refusee"></span> Refusée</div>
+      <div class="legende-item"><span class="legende-dot dot-rendu-partiel"></span> Retour partiel</div>
+      <div class="legende-item"><span class="legende-dot dot-rendu"></span> Rendu / Clôturé</div>
+    </div>
+
+    <div class="card">
+      <div class="card-body" style="padding: 12px;">
+        <div class="cal-grid" id="cal-grid">
+          <div class="empty-state"><span class="empty-icon">⏳</span><p>Chargement…</p></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold —
+    <a href="mailto:amicalesaintavold@gmail.com">Contact</a> |
+    <a href="mailto:aidemesapplis@gmail.com">Support technique</a> |
+    <a href="../../pages/mentions_legales.html">Mentions légales</a>
+  </footer>
+
+  <div class="tooltip-box" id="tooltip"></div>
+
+  <div class="popup-overlay" id="popup-detail">
+    <div class="popup-detail">
+      <div class="popup-header">
+        <h3>📋 Détail de la réservation</h3>
+        <button class="btn-fermer" onclick="fermerPopup()">✕</button>
+      </div>
+      <div class="popup-body" id="popup-body"></div>
+    </div>
+  </div>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    var user = requireAuth();
+    var estGestionnaire = false;
+
+    if (user) {
+      var initials = user.nom.trim().split(' ')
+        .map(function(p) { return p[0]; }).join('').substring(0, 2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+      document.getElementById('user-name').textContent   = user.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+      estGestionnaire = isGestionnaire(user);
+    }
+
+    var moisCourant       = new Date().getMonth();
+    var anneeCourante     = new Date().getFullYear();
+    var toutesReservations = [];
+    var articlesParDemande = {};
+
+    var JOURS     = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+    var MOIS_NOMS = ['Janvier','Fevrier','Mars','Avril','Mai','Juin',
+                     'Juillet','Aout','Septembre','Octobre','Novembre','Decembre'];
+
+    // Table centralisee statut -> classes CSS + label
+    var STATUT_INFO = {
+      en_attente:    { pill: 'pill-attente',       dot: 'dot-attente',       label: 'En attente' },
+      acceptee:      { pill: 'pill-acceptee',      dot: 'dot-acceptee',      label: 'Acceptee' },
+      partielle:     { pill: 'pill-partielle',     dot: 'dot-partielle',     label: 'Partielle' },
+      refusee:       { pill: 'pill-refusee',       dot: 'dot-refusee',       label: 'Refusee' },
+      rendu_partiel: { pill: 'pill-rendu-partiel', dot: 'dot-rendu-partiel', label: 'Retour partiel' },
+      rendu:         { pill: 'pill-rendu',         dot: 'dot-rendu',         label: 'Rendu' },
+      cloture:       { pill: 'pill-cloture',       dot: 'dot-cloture',       label: 'Cloturee' }
+    };
+
+    function getStatutInfo(statut) {
+      return STATUT_INFO[statut] || { pill: 'pill-attente', dot: 'dot-attente', label: statut };
+    }
+
+    // ── Chargement donnees ────────────────────────────────────────
+    async function chargerDonnees() {
+      try {
+        var demandes = await supabaseRequest(
+          'demandes?select=id,nom_demandeur,date_debut,date_fin,statut&order=date_debut.asc'
+        );
+        toutesReservations = demandes || [];
+
+        var demandeArticles = await supabaseRequest(
+          'demande_articles?select=demande_id,quantite_demandee,articles(nom)'
+        );
+        articlesParDemande = {};
+        (demandeArticles || []).forEach(function(da) {
+          if (!articlesParDemande[da.demande_id]) articlesParDemande[da.demande_id] = [];
+          if (da.articles && da.articles.nom) {
+            articlesParDemande[da.demande_id].push(da.quantite_demandee + 'x ' + da.articles.nom);
+          }
+        });
+
+        renderCalendrier();
+      } catch (err) {
+        document.getElementById('cal-grid').innerHTML =
+          '<div class="empty-state"><span class="empty-icon">X</span><p>Erreur : ' + err.message + '</p></div>';
+      }
+    }
+
+    // ── Rendu calendrier ──────────────────────────────────────────
+    function renderCalendrier() {
+      var grid = document.getElementById('cal-grid');
+      document.getElementById('mois-titre').textContent = MOIS_NOMS[moisCourant] + ' ' + anneeCourante;
+
+      var html = '';
+      JOURS.forEach(function(j) { html += '<div class="cal-header-cell">' + j + '</div>'; });
+
+      var premierJour  = new Date(anneeCourante, moisCourant, 1);
+      var debutSemaine = premierJour.getDay();
+      debutSemaine = (debutSemaine === 0) ? 6 : debutSemaine - 1;
+
+      var nbJours     = new Date(anneeCourante, moisCourant + 1, 0).getDate();
+      var aujourd     = new Date();
+      var estAujMonth = aujourd.getMonth() === moisCourant && aujourd.getFullYear() === anneeCourante;
+
+      var moisPrec    = moisCourant === 0 ? 11 : moisCourant - 1;
+      var anneePrec   = moisCourant === 0 ? anneeCourante - 1 : anneeCourante;
+      var nbJoursPrec = new Date(anneePrec, moisPrec + 1, 0).getDate();
+
+      for (var i = 0; i < debutSemaine; i++) {
+        html += '<div class="cal-cell autre-mois"><div class="cal-jour">' + (nbJoursPrec - debutSemaine + 1 + i) + '</div></div>';
+      }
+
+      for (var d = 1; d <= nbJours; d++) {
+        var isAuj       = estAujMonth && d === aujourd.getDate();
+        var dateJour    = new Date(anneeCourante, moisCourant, d);
+        var resasDuJour = getResasPourJour(dateJour);
+
+        html += '<div class="cal-cell' + (isAuj ? ' aujourd-hui' : '') + '">';
+        html += '<div class="cal-jour">' + d + '</div>';
+
+        var max = Math.min(resasDuJour.length, 3);
+        for (var r = 0; r < max; r++) html += renderPill(resasDuJour[r]);
+        if (resasDuJour.length > 3) html += '<div class="plus-resa">+' + (resasDuJour.length - 3) + ' autre(s)</div>';
+
+        if (resasDuJour.length > 0) {
+          html += '<div class="resa-dots">';
+          for (var rd = 0; rd < resasDuJour.length; rd++) html += renderDot(resasDuJour[rd]);
+          html += '</div>';
+        }
+        html += '</div>';
+      }
+
+      var totalCells = debutSemaine + nbJours;
+      var reste = totalCells % 7 === 0 ? 0 : 7 - (totalCells % 7);
+      for (var j = 1; j <= reste; j++) {
+        html += '<div class="cal-cell autre-mois"><div class="cal-jour">' + j + '</div></div>';
+      }
+
+      grid.innerHTML = html;
+    }
+
+    // ── Pastille desktop ──────────────────────────────────────────
+    function renderPill(resa) {
+      var statut    = resa.statut || 'en_attente';
+      var info      = getStatutInfo(statut);
+      var label     = estGestionnaire ? (resa.nom_demandeur || 'Inconnu') : 'Reservation';
+      var cliquable = estGestionnaire ? ' cliquable' : '';
+
+      var articlesStr = (articlesParDemande[resa.id] || []).join(', ') || 'Aucun article';
+      var tooltipData = encodeURIComponent(JSON.stringify({
+        nom: resa.nom_demandeur, articles: articlesStr,
+        debut: formatDate(resa.date_debut), fin: formatDate(resa.date_fin), statut: statut
+      }));
+
+      var onclick = estGestionnaire ? 'ouvrirDetail(' + resa.id + ')' : '';
+
+      return '<span class="resa-pill ' + info.pill + cliquable + '"'
+        + ' data-tooltip="' + tooltipData + '"'
+        + (onclick ? ' onclick="' + onclick + '"' : '')
+        + ' onmouseenter="if(!isTouchDevice()) showTooltip(event, this)"'
+        + ' onmouseleave="if(!isTouchDevice()) hideTooltip()"'
+        + ' ontouchend="onTapPill(event, this)">'
+        + label + '</span>';
+    }
+
+    // ── Point mobile ──────────────────────────────────────────────
+    function renderDot(resa) {
+      var statut  = resa.statut || 'en_attente';
+      var info    = getStatutInfo(statut);
+
+      var articlesStr = (articlesParDemande[resa.id] || []).join(', ') || 'Aucun article';
+      var tooltipData = encodeURIComponent(JSON.stringify({
+        nom: resa.nom_demandeur, articles: articlesStr,
+        debut: formatDate(resa.date_debut), fin: formatDate(resa.date_fin), statut: statut
+      }));
+
+      var onclick = estGestionnaire ? 'ouvrirDetail(' + resa.id + ')' : 'onTapPill(event, this)';
+
+      return '<span class="resa-dot ' + info.dot + '"'
+        + ' data-tooltip="' + tooltipData + '"'
+        + ' ontouchend="' + onclick + '"'
+        + ' onclick="' + onclick + '">'
+        + '</span>';
+    }
+
+    function getResasPourJour(date) {
+      return toutesReservations.filter(function(r) {
+        var debut = new Date(r.date_debut);
+        var fin   = new Date(r.date_fin);
+        debut.setHours(0,0,0,0);
+        fin.setHours(23,59,59,999);
+        return date >= debut && date <= fin;
+      });
+    }
+
+    function isTouchDevice() {
+      return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    }
+
+    // ── Tooltip ───────────────────────────────────────────────────
+    function buildTooltipHTML(data) {
+      var info = getStatutInfo(data.statut);
+      var html = '<div class="tooltip-title">' + (estGestionnaire ? data.nom : 'Reservation') + '</div>';
+      html += '<div>' + data.articles + '</div>';
+      html += '<div style="margin-top:4px;opacity:.8;">Du ' + data.debut + ' au ' + data.fin + '</div>';
+      html += '<div style="margin-top:2px;opacity:.8;">' + info.label + '</div>';
+      return html;
+    }
+
+    function showTooltip(event, el) {
+      var data = JSON.parse(decodeURIComponent(el.getAttribute('data-tooltip')));
+      var tip  = document.getElementById('tooltip');
+      tip.innerHTML = buildTooltipHTML(data);
+      tip.classList.add('visible');
+      positionnerTooltip(event);
+    }
+
+    function positionnerTooltip(event) {
+      var tip = document.getElementById('tooltip');
+      var x = event.clientX + 12;
+      var y = event.clientY + 12;
+      if (x + 250 > window.innerWidth)  x = event.clientX - 260;
+      if (y + 120 > window.innerHeight) y = event.clientY - 130;
+      tip.style.left = x + 'px';
+      tip.style.top  = y + 'px';
+    }
+
+    function hideTooltip() { document.getElementById('tooltip').classList.remove('visible'); }
+
+    document.addEventListener('mousemove', function(e) {
+      var tip = document.getElementById('tooltip');
+      if (tip.classList.contains('visible')) positionnerTooltip(e);
+    });
+
+    // ── Tap mobile ────────────────────────────────────────────────
+    function onTapPill(event, el) {
+      event.stopPropagation();
+      if (estGestionnaire) return;
+      var data = JSON.parse(decodeURIComponent(el.getAttribute('data-tooltip')));
+      var info = getStatutInfo(data.statut);
+      var html = '<div class="detail-row"><span class="detail-label">Materiel</span><span class="detail-value">' + data.articles + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Du</span><span class="detail-value">' + data.debut + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Au</span><span class="detail-value">' + data.fin + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Statut</span><span class="detail-value">' + info.label + '</span></div>';
+      document.getElementById('popup-body').innerHTML = html;
+      document.getElementById('popup-detail').classList.add('show');
+    }
+
+    // ── Popup detail gestionnaire ─────────────────────────────────
+    function ouvrirDetail(resaId) {
+      var resa = toutesReservations.find(function(r) { return r.id === resaId; });
+      if (!resa) return;
+      var articles = (articlesParDemande[resaId] || []).join('<br>') || 'Aucun article';
+      var info     = getStatutInfo(resa.statut);
+      var html = ''
+        + '<div class="detail-row"><span class="detail-label">Demandeur</span><span class="detail-value">' + (resa.nom_demandeur || '-') + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Du</span><span class="detail-value">' + formatDate(resa.date_debut) + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Au</span><span class="detail-value">' + formatDate(resa.date_fin) + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Statut</span><span class="detail-value">' + info.label + '</span></div>'
+        + '<div class="detail-row"><span class="detail-label">Materiel</span><span class="detail-value">' + articles + '</span></div>';
+      document.getElementById('popup-body').innerHTML = html;
+      document.getElementById('popup-detail').classList.add('show');
+    }
+
+    function fermerPopup() { document.getElementById('popup-detail').classList.remove('show'); }
+
+    document.getElementById('popup-detail').addEventListener('click', function(e) {
+      if (e.target === this) fermerPopup();
+    });
+
+    function changerMois(delta) {
+      moisCourant += delta;
+      if (moisCourant > 11) { moisCourant = 0;  anneeCourante++; }
+      if (moisCourant < 0)  { moisCourant = 11; anneeCourante--; }
+      renderCalendrier();
+    }
+
+    function allerAujourdhui() {
+      moisCourant   = new Date().getMonth();
+      anneeCourante = new Date().getFullYear();
+      renderCalendrier();
+    }
+
+    function formatDate(str) {
+      if (!str) return '-';
+      var p = str.split('-');
+      if (p.length < 3) return str;
+      return p[2] + '/' + p[1] + '/' + p[0];
+    }
+
+    chargerDonnees();
+  </script>
+</body>
+</html>

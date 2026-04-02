@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paramètres - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .logo-preview-wrap {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: var(--bg);
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .logo-preview-wrap img {
+      width: 80px; height: 80px;
+      object-fit: contain;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--border);
+      padding: 6px;
+    }
+    .logo-preview-wrap .logo-meta strong { display: block; font-size: .95rem; font-weight: 600; margin-bottom: 4px; }
+    .logo-preview-wrap .logo-meta span   { font-size: .8rem; color: var(--muted); }
+
+    .upload-zone {
+      border: 2px dashed var(--primary);
+      border-radius: 10px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: background .2s, border-color .2s;
+      position: relative;
+      margin-bottom: 20px;
+    }
+    .upload-zone:hover, .upload-zone.drag-over { background: rgba(224,123,57,.07); border-color: var(--primary-d); }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+    .upload-zone .upload-icon { font-size: 2rem; margin-bottom: 8px; }
+    .upload-zone p { color: var(--muted); font-size: .88rem; line-height: 1.5; }
+    .upload-zone p strong { color: var(--primary); }
+    .upload-zone .file-name { margin-top: 10px; font-size: .82rem; color: var(--accent); font-weight: 600; display: none; }
+
+    .card-badge { background: var(--accent); color: #fff; font-size: .7rem; padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+    .card-badge.danger { background: var(--danger); }
+
+    #message { margin-top: 14px; padding: 12px 16px; border-radius: 8px; font-size: .88rem; font-weight: 500; display: none; align-items: center; gap: 8px; }
+    #message.success { background: rgba(74,140,92,.12); color: var(--accent-d); border: 1px solid rgba(74,140,92,.3); display: flex; }
+    #message.error   { background: rgba(200,50,50,.08); color: #b53030; border: 1px solid rgba(200,50,50,.25); display: flex; }
+
+    /* ── Boutons RAZ ── */
+    .raz-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    .raz-item {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .raz-item .raz-title { font-weight: 700; font-size: .9rem; }
+    .raz-item .raz-desc  { font-size: .78rem; color: var(--muted); }
+    .btn-raz {
+      background: rgba(192,57,43,.1);
+      color: var(--danger);
+      border: 1.5px solid rgba(192,57,43,.25);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: .82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background .2s;
+      margin-top: 4px;
+    }
+    .btn-raz:hover { background: rgba(192,57,43,.2); }
+
+    .warning-box {
+      display: flex;
+      gap: 10px;
+      background: rgba(192,57,43,.06);
+      border-left: 4px solid var(--danger);
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: .82rem;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+    .cat-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.cat-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 14px; background: var(--bg);
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: .88rem; font-weight: 500;
+}
+.btn-rm-cat {
+  background: rgba(192,57,43,.08); border: 1px solid rgba(192,57,43,.2);
+  color: var(--danger); cursor: pointer; font-size: .8rem;
+  padding: 4px 10px; border-radius: 6px; font-weight: 700; transition: background .15s;
+}
+.btn-rm-cat:hover { background: rgba(192,57,43,.18); }
+.cat-add-row {
+  display: flex; gap: 8px; align-items: center;
+}
+.cat-add-row input {
+  flex: 1; padding: 8px 12px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  font-size: .88rem; background: var(--bg);
+}
+.cat-add-row input:focus { outline: none; border-color: var(--primary); background: #fff; }
+.cat-section-title {
+  font-size: .8rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .5px; color: var(--muted); margin-bottom: 10px;
+}
+.confirm-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.5);
+  display: none; align-items: center; justify-content: center;
+  z-index: 99999;
+}
+.confirm-overlay.show { display: flex; }
+.confirm-box {
+  background: white; border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  padding: 32px; max-width: 360px; width: 90%;
+  text-align: center; font-family: sans-serif;
+}
+.confirm-box .confirm-icon { font-size: 2.5rem; margin-bottom: 12px; }
+.confirm-box .confirm-title { font-size: 1.05rem; font-weight: 700; color: #2d2d2d; margin-bottom: 8px; }
+.confirm-box .confirm-msg { font-size: .85rem; color: #888; margin-bottom: 24px; line-height: 1.5; }
+.confirm-footer { display: flex; gap: 10px; justify-content: center; }
+.btn-confirm-annuler {
+  padding: 10px 20px; border-radius: 10px; border: 1.5px solid #ddd;
+  background: #f5f5f5; color: #666; font-size: .9rem; font-weight: 600; cursor: pointer;
+}
+.btn-confirm-ok {
+  padding: 10px 20px; border-radius: 10px; border: none;
+  background: #c4622a; color: #fff; font-size: .9rem; font-weight: 700; cursor: pointer;
+}
+  </style>
+</head>
+<body>
+
+  <!-- Header commun -->
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Gestion des prêts de matériel</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+
+    <div class="page-heading">
+      <div class="icon-wrap">⚙️</div>
+      <div>
+        <h1>Paramètres</h1>
+        <p>Gestion de l'apparence et de la configuration du portail</p>
+      </div>
+    </div>
+
+    <!-- Card Logo -->
+    <div class="card">
+      <div class="card-header">
+        <h2>🖼️ Logo de l'Amicale</h2>
+        <span class="card-badge">Apparence</span>
+      </div>
+      <div class="card-body">
+        <div class="logo-preview-wrap">
+          <img src="/Images/logo.png" alt="Logo Amicale" id="current-logo">
+          <div class="logo-meta">
+            <strong>Logo actuel</strong>
+            <span>Affiché sur toutes les pages du portail</span>
+          </div>
+        </div>
+        <div class="notice">
+          <span>ℹ️</span>
+          <div>Formats acceptés : PNG, JPG, SVG. Taille recommandée : 200×200 px minimum.</div>
+        </div>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" accept="image/*" id="logo-input">
+          <div class="upload-icon">📁</div>
+          <p><strong>Cliquez pour choisir un fichier</strong><br>ou glissez-déposez votre image ici</p>
+          <div class="file-name" id="file-name"></div>
+        </div>
+        <button class="btn-primary" id="submit-btn" disabled>⬆️ Uploader le nouveau logo</button>
+        <div id="message"></div>
+      </div>
+    </div>
+
+    <!-- Card Catégories -->
+<div class="card">
+  <div class="card-header">
+    <h2>🏷️ Catégories</h2>
+    <span class="card-badge">Configuration</span>
+  </div>
+  <div class="card-body">
+
+    <!-- Catégories consommables -->
+    <div class="cat-section-title">Consommables</div>
+    <div class="cat-list" id="list-cat-conso"></div>
+    <div class="cat-add-row">
+      <input type="text" id="input-cat-conso" placeholder="Nouvelle catégorie...">
+      <button class="btn-accent" onclick="ajouterCategorie('conso')">➕ Ajouter</button>
+    </div>
+
+    <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+
+    <!-- Catégories prêt -->
+    <div class="cat-section-title">Prêt de matériel</div>
+    <div class="cat-list" id="list-cat-pret"></div>
+    <div class="cat-add-row">
+      <input type="text" id="input-cat-pret" placeholder="Nouvelle catégorie...">
+      <button class="btn-accent" onclick="ajouterCategorie('pret')">➕ Ajouter</button>
+    </div>
+
+  </div>
+</div>
+
+    <!-- Card RAZ -->
+    <div class="card">
+      <div class="card-header">
+        <h2>🧹 Remise à zéro</h2>
+        <span class="card-badge danger">Zone de test</span>
+      </div>
+      <div class="card-body">
+
+        <div class="warning-box">
+          ⚠️ <div>Ces boutons sont <strong>irréversibles</strong>. À supprimer avant la mise en ligne.</div>
+        </div>
+
+        <div class="raz-grid">
+
+          <div class="raz-item">
+            <div class="raz-title">📋 Demandes</div>
+            <div class="raz-desc">Supprime toutes les demandes et les lignes associées (articles demandés).</div>
+            <button class="btn-raz" onclick="razDemandes()">🗑 Effacer les demandes</button>
+          </div>
+
+          <div class="raz-item">
+            <div class="raz-title">🪑 Articles</div>
+            <div class="raz-desc">Supprime tout le matériel enregistré dans le catalogue.</div>
+            <button class="btn-raz" onclick="razArticles()">🗑 Effacer les articles</button>
+          </div>
+
+          <div class="raz-item">
+            <div class="raz-title">👥 Utilisateurs</div>
+            <div class="raz-desc">Supprime tous les utilisateurs sauf votre compte admin.</div>
+            <button class="btn-raz" onclick="razUtilisateurs()">🗑 Effacer les utilisateurs</button>
+          </div>
+
+        </div>
+
+        <div class="toast" id="toast-raz"></div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold — Contact | Mentions légales
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+const user = requireAuth(['super_admin']);
+if (user) {
+  const initials = user.nom.trim().split(' ').map(p => p[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent   = user.nom;
+  document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+}
+
+const toast = document.getElementById('toast');
+function showToast(msg, type = 'success') {
+  toast.textContent = msg;
+  toast.className = 'toast' + (type === 'error' ? ' error' : '');
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3500);
+}
+
+/* ── Logo ── */
+const input       = document.getElementById('logo-input');
+const zone        = document.getElementById('upload-zone');
+const fileLabel   = document.getElementById('file-name');
+const submitBtn   = document.getElementById('submit-btn');
+const msgBox      = document.getElementById('message');
+const currentLogo = document.getElementById('current-logo');
+
+input.addEventListener('change', () => {
+  if (input.files.length) {
+    fileLabel.textContent = '✔ ' + input.files[0].name;
+    fileLabel.style.display = 'block';
+    submitBtn.disabled = false;
+    const reader = new FileReader();
+    reader.onload = e => currentLogo.src = e.target.result;
+    reader.readAsDataURL(input.files[0]);
+  }
+});
+
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault();
+  zone.classList.remove('drag-over');
+  if (e.dataTransfer.files.length) {
+    input.files = e.dataTransfer.files;
+    input.dispatchEvent(new Event('change'));
+  }
+});
+
+submitBtn.addEventListener('click', async () => {
+  if (!input.files.length) return;
+  submitBtn.disabled = true;
+  submitBtn.textContent = '⏳ Upload en cours…';
+  msgBox.style.display = 'none';
+  try {
+    const url = await uploadLogo(input.files[0]);
+    currentLogo.src = url;
+    msgBox.className = 'success';
+    msgBox.innerHTML = '✅ Logo mis à jour avec succès !';
+  } catch (err) {
+    msgBox.className = 'error';
+    msgBox.innerHTML = '❌ Erreur : ' + err.message;
+  }
+  submitBtn.disabled = false;
+  submitBtn.innerHTML = '⬆️ Uploader le nouveau logo';
+});
+
+/* ── RAZ ── */
+async function razDemandes() {
+  confirmerAction('⚠️', 'Effacer les demandes', 'Supprimer TOUTES les demandes et leurs articles associés ? Cette action est irréversible.', async () => {
+    try {
+      await supabaseRequest('demande_articles?id=gt.0', { method: 'DELETE' });
+      await supabaseRequest('demandes?id=gt.0', { method: 'DELETE' });
+      showToast('✅ Toutes les demandes ont été supprimées.');
+    } catch (err) { showToast('❌ Erreur : ' + err.message, 'error'); }
+  });
+}
+
+async function razArticles() {
+  confirmerAction('⚠️', 'Effacer les articles', 'Supprimer TOUS les articles du catalogue ? Cette action est irréversible.', async () => {
+    try {
+      await supabaseRequest('articles?id=gt.0', { method: 'DELETE' });
+      showToast('✅ Tous les articles ont été supprimés.');
+    } catch (err) { showToast('❌ Erreur : ' + err.message, 'error'); }
+  });
+}
+
+async function razUtilisateurs() {
+  confirmerAction('⚠️', 'Effacer les utilisateurs', 'Supprimer TOUS les utilisateurs sauf vous ? Cette action est irréversible.', async () => {
+    try {
+      await supabaseRequest(`utilisateurs?id=neq.${user.id}`, { method: 'DELETE' });
+      showToast('✅ Tous les utilisateurs ont été supprimés (sauf vous).');
+    } catch (err) { showToast('❌ Erreur : ' + err.message, 'error'); }
+  });
+}
+
+/* ── Catégories ── */
+var catsConso = [];
+var catsPret  = [];
+
+async function loadCategories() {
+  try {
+    catsConso = await supabaseRequest('categories_consommables?select=id,libelle&order=libelle.asc');
+    catsPret  = await supabaseRequest('categories_pret?select=id,libelle&order=libelle.asc');
+    renderCategories();
+  } catch(err) {
+    showToast('❌ Erreur chargement catégories : ' + err.message, 'error');
+  }
+}
+
+function renderCategories() {
+  renderCatList('list-cat-conso', catsConso, 'conso');
+  renderCatList('list-cat-pret',  catsPret,  'pret');
+}
+
+function renderCatList(containerId, cats, type) {
+  const container = document.getElementById(containerId);
+  if (cats.length === 0) {
+    container.innerHTML = '<div style="font-size:.82rem;color:var(--muted);font-style:italic;">Aucune catégorie.</div>';
+    return;
+  }
+  container.innerHTML = cats.map(cat => `
+    <div class="cat-item">
+      <span>${cat.libelle}</span>
+      <button class="btn-rm-cat" onclick="supprimerCategorie('${type}', ${cat.id}, '${cat.libelle.replace(/'/g, "\\'")}')">✕ Supprimer</button>
+    </div>
+  `).join('');
+}
+
+async function ajouterCategorie(type) {
+  const inputId = type === 'conso' ? 'input-cat-conso' : 'input-cat-pret';
+  const table   = type === 'conso' ? 'categories_consommables' : 'categories_pret';
+  const libelle = document.getElementById(inputId).value.trim();
+  if (!libelle) { showToast('⚠ Entrez un nom de catégorie.', 'error'); return; }
+  const liste = type === 'conso' ? catsConso : catsPret;
+  if (liste.find(c => c.libelle.toLowerCase() === libelle.toLowerCase())) {
+    showToast('⚠ Cette catégorie existe déjà.', 'error'); return;
+  }
+  try {
+    await supabaseRequest(table, { method: 'POST', body: JSON.stringify({ libelle }) });
+    document.getElementById(inputId).value = '';
+    await loadCategories();
+    showToast('✅ Catégorie ajoutée !');
+  } catch(err) {
+    showToast('❌ Erreur : ' + err.message, 'error');
+  }
+}
+
+function supprimerCategorie(type, id, libelle) {
+  confirmerAction('🏷️', 'Supprimer la catégorie', `Voulez-vous supprimer la catégorie "${libelle}" ?`, async () => {
+    const table = type === 'conso' ? 'categories_consommables' : 'categories_pret';
+    try {
+      await supabaseRequest(`${table}?id=eq.${id}`, { method: 'DELETE' });
+      await loadCategories();
+      showToast(`🗑 Catégorie "${libelle}" supprimée.`);
+    } catch(err) {
+      showToast('❌ Erreur : ' + err.message, 'error');
+    }
+  });
+}
+
+/* ── Popup confirmation ── */
+function confirmerAction(icon, titre, msg, callback) {
+  document.getElementById('confirm-icon').textContent  = icon;
+  document.getElementById('confirm-title').textContent = titre;
+  document.getElementById('confirm-msg').textContent   = msg;
+  document.getElementById('confirm-overlay').classList.add('show');
+  document.getElementById('btn-confirm-ok').onclick = function() {
+    fermerConfirm();
+    callback();
+  };
+}
+
+function fermerConfirm() {
+  document.getElementById('confirm-overlay').classList.remove('show');
+}
+
+loadCategories();
+  </script>
+
+  <div class="confirm-overlay" id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirm-icon">⚠️</div>
+    <div class="confirm-title" id="confirm-title">Confirmation</div>
+    <div class="confirm-msg" id="confirm-msg"></div>
+    <div class="confirm-footer">
+      <button class="btn-confirm-annuler" onclick="fermerConfirm()">Annuler</button>
+      <button class="btn-confirm-ok" id="btn-confirm-ok">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

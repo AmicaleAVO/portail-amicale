@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion du matériel - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    /* Styles spécifiques à gestion_materiel.html */
+    .add-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto auto;
+      gap: 12px;
+      align-items: end;
+    }
+    @media (max-width: 640px) {
+      .add-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .photo-upload-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 14px;
+      background: var(--bg);
+      border: 1.5px dashed var(--primary);
+      border-radius: 8px;
+      color: var(--primary);
+      font-size: .85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+      white-space: nowrap;
+      width: 100%;
+      justify-content: center;
+    }
+    .photo-upload-btn:hover { background: rgba(224,123,57,.08); }
+    .photo-upload-btn input { display: none; }
+
+    .photo-thumb {
+      width: 48px; height: 48px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    .no-photo {
+      width: 48px; height: 48px;
+      border-radius: 8px;
+      background: var(--bg);
+      border: 1px dashed var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+
+    .item-name { font-weight: 600; }
+    .item-desc { font-size: .78rem; color: var(--muted); }
+
+    .qty-badge {
+      display: inline-block;
+      background: rgba(74,140,92,.12);
+      color: var(--accent-d);
+      font-weight: 700;
+      font-size: .85rem;
+      padding: 4px 12px;
+      border-radius: 99px;
+      border: 1px solid rgba(74,140,92,.25);
+    }
+
+    .btn-edit, .btn-save, .btn-cancel {
+      border: none;
+      padding: 6px 14px;
+      border-radius: 7px;
+      font-size: .8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-edit   { background: rgba(224,123,57,.12); color: var(--primary-d); }
+    .btn-edit:hover { background: rgba(224,123,57,.22); }
+    .btn-save   { background: var(--accent); color: #fff; }
+    .btn-save:hover { background: var(--accent-d); }
+    .btn-cancel { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+    .btn-cancel:hover { background: var(--border); }
+
+    .actions-cell { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+
+    .edit-input {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1.5px solid var(--primary);
+      border-radius: 7px;
+      font-size: .85rem;
+      background: transparent;
+      margin-bottom: 4px;
+    }
+    .edit-input:focus { outline: none; }
+
+    .count-badge {
+      background: var(--primary); color: #fff;
+      font-size: .72rem; font-weight: 700;
+      padding: 2px 9px; border-radius: 99px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header commun -->
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Gestion des prêts de matériel</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+
+    <div class="page-heading">
+      <div class="icon-wrap">🪑</div>
+      <div>
+        <h1>Gestion du matériel</h1>
+        <p>Ajouter, modifier ou supprimer le matériel disponible au prêt</p>
+      </div>
+    </div>
+
+    <!-- Ajout -->
+    <div class="card">
+      <div class="card-header"><h2>➕ Ajouter un article</h2></div>
+      <div class="card-body">
+        <form id="add-material-form">
+          <div class="add-grid">
+            <div class="field">
+              <label>Nom du matériel</label>
+              <input type="text" id="nom" placeholder="Ex : Table pliante" required>
+            </div>
+            <div class="field">
+              <label>Catégorie</label>
+              <select id="categorie">
+              <option value="">-- Choisir --</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Quantité</label>
+              <input type="number" id="quantite" placeholder="10" min="1" required>
+            </div>
+            <div class="field">
+              <label>Remarques</label>
+              <input type="text" id="remarques" placeholder="Optionnel">
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <button type="submit" class="btn-accent">✅ Ajouter l'article</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Liste -->
+    <div class="card">
+      <div class="card-header">
+  <h2>📋 Matériel existant</h2>
+  <span class="count-badge" id="count-badge">0</span>
+</div>
+<div style="padding: 12px 20px 16px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+  <input type="text" id="filtre-nom" placeholder="🔍 Rechercher un article..."
+    oninput="filtrerTable()"
+    style="padding:7px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:.85rem; width:220px;">
+  <select id="filtre-cat" onchange="filtrerTable()"
+    style="padding:7px 12px; border:1.5px solid var(--border); border-radius:8px; font-size:.85rem; color:var(--text); background:var(--bg);">
+    <option value="">Toutes les catégories</option>
+  </select>
+</div>
+<div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Article</th>
+              <th class="center">Quantité totale</th>
+              <th class="center">Disponible</th>
+              <th class="center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" style="display:none;">
+          <span class="empty-icon">📦</span>
+          <p>Aucun matériel enregistré.<br>Ajoutez votre premier article ci-dessus.</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold — Contact | Mentions légales
+  </footer>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    // Protection : gestionnaire + admin
+   const user = requireAuthFn(isGestionnaire);
+if (user) {
+  const initials = user.nom.trim().split(' ').map(p => p[0]).join('').substring(0,2).toUpperCase();
+  document.getElementById('user-avatar').textContent = initials;
+  document.getElementById('user-name').textContent   = user.nom;
+  document.getElementById('user-role').textContent   = getRoleLabel(user.role);
+}
+
+    const tableBody  = document.getElementById('table-body');
+    const emptyState = document.getElementById('empty-state');
+    const countBadge = document.getElementById('count-badge');
+    const toast      = document.getElementById('toast');
+
+    function showToast(msg, type = 'success') {
+      toast.textContent = msg;
+      toast.className = 'toast' + (type === 'error' ? ' error' : '');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    let articles = [];
+    let categoriesPret = [];
+
+     async function loadArticles() {
+     try {
+     categoriesPret = await supabaseRequest('categories_pret?select=id,libelle&order=libelle.asc');
+     articles = await getArticles();
+     renderTable();
+      } catch (err) {
+        showToast('❌ Erreur chargement : ' + err.message, 'error');
+      }
+    }
+
+    function renderTable() {
+  tableBody.innerHTML = '';
+  countBadge.textContent = articles.length;
+  emptyState.style.display = articles.length === 0 ? 'block' : 'none';
+
+  const selCat = document.getElementById('categorie');
+  const valActuelle = selCat.value;
+  selCat.innerHTML = '<option value="">-- Choisir --</option>' +
+    categoriesPret.map(cat => `<option value="${cat.libelle}">${cat.libelle}</option>`).join('');
+  selCat.value = valActuelle;
+
+  const selFiltre = document.getElementById('filtre-cat');
+  const valFiltre = selFiltre.value;
+  selFiltre.innerHTML = '<option value="">Toutes les catégories</option>' +
+    categoriesPret.map(cat => `<option value="${cat.libelle}">${cat.libelle}</option>`).join('');
+  selFiltre.value = valFiltre;
+
+  articles.forEach(article => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <div class="item-name">${article.nom}</div>
+            <div class="item-desc">${article.categorie || ''} ${article.remarques ? '— ' + article.remarques : ''}</div>
+          </td>
+          <td class="center"><span class="qty-badge">${article.quantite_totale}</span></td>
+          <td class="center"><span class="qty-badge">${article.quantite_disponible}</span></td>
+          <td class="center">
+            <div class="actions-cell">
+              <button class="btn-edit" onclick="editRow(${article.id})">✏️ Modifier</button>
+              <button class="btn-danger" onclick="deleteArticle(${article.id}, '${article.nom.replace(/'/g, "\\'")}')">🗑 Supprimer</button>
+            </div>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function filtrerTable() {
+      const nom = document.getElementById('filtre-nom').value.toLowerCase();
+      const cat = document.getElementById('filtre-cat').value.toLowerCase();
+      Array.from(tableBody.rows).forEach(tr => {
+        const nomArt = tr.querySelector('.item-name')?.textContent.toLowerCase() || '';
+        const catArt = tr.querySelector('.item-desc')?.textContent.toLowerCase() || '';
+        const matchNom = !nom || nomArt.includes(nom);
+        const matchCat = !cat || catArt.includes(cat);
+        tr.style.display = matchNom && matchCat ? '' : 'none';
+      });
+    }
+
+    // Ajouter
+
+    // Ajouter
+    document.getElementById('add-material-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nom      = document.getElementById('nom').value.trim();
+      const categorie = document.getElementById('categorie').value.trim();
+      const quantite = parseInt(document.getElementById('quantite').value);
+      const remarques = document.getElementById('remarques').value.trim();
+
+      try {
+        await ajouterArticle(nom, categorie, quantite, null, 'bon', remarques);
+        await loadArticles();
+        e.target.reset();
+        showToast('✅ Matériel ajouté avec succès !');
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    });
+
+    // Supprimer
+    async function deleteArticle(id, nom) {
+      if (!confirm(`Supprimer "${nom}" ?`)) return;
+      try {
+        await supprimerArticle(id);
+        await loadArticles();
+        showToast(`🗑 "${nom}" supprimé.`);
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    // Modifier inline
+    function editRow(id) {
+      const article = articles.find(a => a.id === id);
+      const tr = Array.from(tableBody.rows).find(r =>
+        r.querySelector(`[onclick="editRow(${id})"]`)
+      );
+
+      tr.innerHTML = `
+        <td>
+          <input type="text" class="edit-input" id="edit-nom-${id}" value="${article.nom}" placeholder="Nom">
+          <select class="edit-input" id="edit-cat-${id}">
+          <option value="">-- Choisir --</option>
+          ${categoriesPret.map(cat => `<option value="${cat.libelle}" ${article.categorie === cat.libelle ? 'selected' : ''}>${cat.libelle}</option>`).join('')}
+        </select>
+        </td>
+        <td class="center">
+          <input type="number" class="edit-input" id="edit-qty-${id}" value="${article.quantite_totale}" min="1" style="width:70px;text-align:center;">
+        </td>
+        <td class="center">
+          <input type="number" class="edit-input" id="edit-dispo-${id}" value="${article.quantite_disponible}" min="0" style="width:70px;text-align:center;">
+        </td>
+        <td class="center">
+          <div class="actions-cell">
+            <button class="btn-save" onclick="saveRow(${id})">💾 Enregistrer</button>
+            <button class="btn-cancel" onclick="renderTable()">Annuler</button>
+          </div>
+        </td>
+      `;
+    }
+
+    async function saveRow(id) {
+      const nom      = document.getElementById(`edit-nom-${id}`).value.trim();
+      const categorie = document.getElementById(`edit-cat-${id}`).value.trim();
+      const qty      = parseInt(document.getElementById(`edit-qty-${id}`).value);
+      const dispo    = parseInt(document.getElementById(`edit-dispo-${id}`).value);
+
+      if (!nom || !qty) { showToast('⚠ Nom et quantité requis.', 'error'); return; }
+
+      try {
+        await modifierArticle(id, {
+          nom, categorie,
+          quantite_totale: qty,
+          quantite_disponible: dispo
+        });
+        await loadArticles();
+        showToast('✅ Modifications enregistrées !');
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    loadArticles();
+  </script>
+
+</body>
+</html>

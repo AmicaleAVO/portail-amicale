@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Finaliser mon inscription - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .content-wrapper {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; padding: 0 16px 48px;
+    }
+    .form-card {
+      background: var(--card-bg); border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border);
+      padding: 32px 28px; width: 100%; max-width: 440px;
+      margin-top: 32px; position: relative; z-index: 1;
+    }
+    .form-card h2 {
+      font-size: 1.1rem; font-weight: 700;
+      text-align: center; margin-bottom: 8px; color: var(--text);
+    }
+    .form-card .subtitle {
+      text-align: center; font-size: .85rem;
+      color: var(--muted); margin-bottom: 24px; line-height: 1.5;
+    }
+    .field {
+      display: flex; flex-direction: column;
+      gap: 5px; margin-bottom: 16px;
+    }
+    .field label {
+      font-size: .78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .5px; color: var(--muted);
+    }
+    .field input {
+      padding: 11px 12px; border: 1.5px solid var(--border);
+      border-radius: 8px; font-size: .95rem; color: var(--text);
+      background: var(--bg); transition: border-color .2s, background .2s;
+    }
+    .field input:focus { outline: none; border-color: var(--primary); background: #fff; }
+    .field input.invalid { border-color: #c0392b; background: #fff8f8; }
+    .field-error { font-size: .78rem; color: #c0392b; min-height: 16px; }
+
+    .strength-bar { height: 4px; border-radius: 99px; background: var(--border); margin-top: 6px; overflow: hidden; }
+    .strength-bar-fill { height: 100%; border-radius: 99px; width: 0%; transition: width .3s, background .3s; }
+    .strength-label { font-size: .72rem; color: var(--muted); margin-top: 3px; }
+
+    .btn-submit {
+      width: 100%; background: var(--primary); color: #fff; border: none;
+      padding: 13px; border-radius: 10px; font-size: 1rem; font-weight: 700;
+      cursor: pointer; margin-top: 8px;
+      transition: background .2s, transform .1s;
+      box-shadow: 0 3px 10px rgba(224,123,57,.35);
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-submit:hover { background: var(--primary-d); transform: translateY(-1px); }
+    .btn-submit:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,.4);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin .6s linear infinite; display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-box {
+      background: rgba(192,57,43,.08); border: 1px solid rgba(192,57,43,.25);
+      border-radius: 8px; padding: 12px 14px; font-size: .85rem; color: #c0392b;
+      margin-bottom: 16px; display: none; align-items: center; gap: 8px;
+    }
+    .error-box.show { display: flex; }
+
+    .welcome-box {
+      background: rgba(74,140,92,.08); border: 1px solid rgba(74,140,92,.25);
+      border-radius: 8px; padding: 14px 16px; margin-bottom: 20px;
+    }
+    .welcome-box .welcome-name { font-size: 1rem; font-weight: 700; color: var(--accent-d); }
+    .welcome-box .welcome-sub  { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+
+    .info-notice {
+      background: rgba(74,140,92,.07); border-left: 3px solid var(--accent);
+      border-radius: 6px; padding: 12px 14px; font-size: .83rem;
+      color: var(--text); margin-bottom: 24px; line-height: 1.5;
+    }
+
+    .login-link {
+      text-align: center; margin-top: 20px;
+      font-size: .85rem; color: var(--muted);
+    }
+    .login-link a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    .login-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="../../Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Finaliser mon inscription</div>
+    </div>
+  </header>
+
+  <div class="content-wrapper">
+    <div class="form-card">
+
+      <div class="error-box" id="error-box">
+        <span>⚠️</span>
+        <span id="error-msg"></span>
+      </div>
+
+      <!-- Étape 1 : vérification email -->
+      <div id="step-email">
+        <h2>Activer mon compte</h2>
+        <p class="subtitle">Votre demande a été approuvée. Saisissez votre adresse email pour continuer.</p>
+
+        <div class="info-notice">
+          📧 Utilisez l'adresse email que vous avez indiquée lors de votre demande d'accès.
+        </div>
+
+        <div class="field">
+          <label for="email">Adresse email</label>
+          <input type="email" id="email" placeholder="jean.dupont@exemple.fr" required autocomplete="email">
+          <div class="field-error" id="err-email"></div>
+        </div>
+
+        <button class="btn-submit" id="btn-verifier" onclick="verifierEmail()">
+          <div class="spinner" id="spinner-verifier"></div>
+          <span id="btn-verifier-label">Vérifier mon email</span>
+        </button>
+      </div>
+
+      <!-- Étape 2 : choix du mot de passe -->
+      <div id="step-password" style="display:none;">
+
+        <div class="welcome-box">
+          <div class="welcome-name" id="welcome-name"></div>
+          <div class="welcome-sub">Bienvenue ! Choisissez votre mot de passe pour accéder au portail.</div>
+        </div>
+
+        <div class="field">
+          <label for="password">Mot de passe</label>
+          <input type="password" id="password" placeholder="Min. 6 caractères" required>
+          <div class="strength-bar"><div class="strength-bar-fill" id="strength-fill"></div></div>
+          <div class="strength-label" id="strength-label"></div>
+          <div class="field-error" id="err-password"></div>
+        </div>
+
+        <div class="field">
+          <label for="password-confirm">Confirmer le mot de passe</label>
+          <input type="password" id="password-confirm" placeholder="Répétez le mot de passe" required>
+          <div class="field-error" id="err-confirm"></div>
+        </div>
+
+        <button class="btn-submit" id="btn-submit" onclick="finaliserInscription()">
+          <div class="spinner" id="spinner-submit"></div>
+          <span id="btn-submit-label">Créer mon compte</span>
+        </button>
+      </div>
+
+      <div class="login-link">
+        Déjà inscrit ? <a href="login.html">Se connecter</a>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    &copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold
+  </footer>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    if (getSession()) window.location.href = '/pages/accueil.html';
+
+    let utilisateurTrouve = null;
+
+    function showError(msg) {
+      document.getElementById('error-msg').textContent = msg;
+      document.getElementById('error-box').classList.add('show');
+    }
+    function hideError() {
+      document.getElementById('error-box').classList.remove('show');
+    }
+
+    // ── Étape 1 : vérifier l'email ──
+    async function verifierEmail() {
+      hideError();
+      document.getElementById('err-email').textContent = '';
+      document.getElementById('email').classList.remove('invalid');
+
+      const email = document.getElementById('email').value.trim();
+      if (!email) {
+        document.getElementById('err-email').textContent = 'Adresse email requise.';
+        document.getElementById('email').classList.add('invalid');
+        return;
+      }
+
+      const btn = document.getElementById('btn-verifier');
+      btn.disabled = true;
+      document.getElementById('spinner-verifier').style.display = 'block';
+      document.getElementById('btn-verifier-label').textContent = 'Vérification...';
+
+      try {
+        const results = await supabaseRequest(
+          'utilisateurs?mail=eq.' + encodeURIComponent(email) + '&select=id,nom,mot_de_passe,actif,statut'
+        );
+
+        if (!results || results.length === 0) {
+          showError('Aucune demande trouvée pour cet email. Avez-vous bien fait une demande d\'accès ?');
+          return;
+        }
+
+        const u = results[0];
+
+        if (u.statut === 'en_attente') {
+          showError('Votre demande est en cours d\'examen. Vous serez contacté par email une fois approuvée.');
+          return;
+        }
+        if (u.statut === 'refuse') {
+          showError('Votre demande a été refusée. Contactez un administrateur pour plus d\'informations.');
+          return;
+        }
+        if (u.actif && u.mot_de_passe && u.mot_de_passe !== '') {
+          showError('Ce compte est déjà activé. Rendez-vous sur la page de connexion.');
+          return;
+        }
+
+        utilisateurTrouve = u;
+        document.getElementById('welcome-name').textContent = 'Bonjour ' + u.nom + ' !';
+        document.getElementById('step-email').style.display    = 'none';
+        document.getElementById('step-password').style.display = 'block';
+
+      } catch (err) {
+        showError('Erreur : ' + err.message);
+      } finally {
+        btn.disabled = false;
+        document.getElementById('spinner-verifier').style.display = 'none';
+        document.getElementById('btn-verifier-label').textContent = 'Vérifier mon email';
+      }
+    }
+
+    // ── Indicateur force mot de passe ──
+    document.addEventListener('input', function(e) {
+      if (e.target.id !== 'password') return;
+      const v = e.target.value;
+      let score = 0;
+      if (v.length >= 8) score++;
+      if (/[A-Z]/.test(v)) score++;
+      if (/[0-9]/.test(v)) score++;
+      if (/[^A-Za-z0-9]/.test(v)) score++;
+      const levels = [
+        { pct: '0%',   color: '',        label: '' },
+        { pct: '25%',  color: '#e74c3c', label: 'Très faible' },
+        { pct: '50%',  color: '#e67e22', label: 'Faible' },
+        { pct: '75%',  color: '#f1c40f', label: 'Moyen' },
+        { pct: '100%', color: '#4A8C5C', label: 'Fort' }
+      ];
+      const l = levels[score] || levels[0];
+      document.getElementById('strength-fill').style.width      = l.pct;
+      document.getElementById('strength-fill').style.background = l.color;
+      document.getElementById('strength-label').textContent     = l.label;
+    });
+
+    // ── Étape 2 : finaliser l'inscription ──
+    async function finaliserInscription() {
+      hideError();
+      document.getElementById('err-password').textContent = '';
+      document.getElementById('err-confirm').textContent  = '';
+
+      const pwd     = document.getElementById('password').value;
+      const confirm = document.getElementById('password-confirm').value;
+
+      if (pwd.length < 6) {
+        document.getElementById('err-password').textContent = 'Minimum 6 caractères.';
+        document.getElementById('password').classList.add('invalid');
+        return;
+      }
+      if (pwd !== confirm) {
+        document.getElementById('err-confirm').textContent = 'Les mots de passe ne correspondent pas.';
+        document.getElementById('password-confirm').classList.add('invalid');
+        return;
+      }
+
+      const btn = document.getElementById('btn-submit');
+      btn.disabled = true;
+      document.getElementById('spinner-submit').style.display = 'block';
+      document.getElementById('btn-submit-label').textContent = 'Activation...';
+
+      try {
+        // ✅ Hash du mot de passe avant enregistrement
+        const hash = await hashPassword(pwd);
+
+        await supabaseRequest('utilisateurs?id=eq.' + utilisateurTrouve.id, {
+          method: 'PATCH',
+          body: JSON.stringify({ mot_de_passe: hash, actif: true })
+        });
+
+        sessionStorage.setItem('register_success', '1');
+        window.location.href = 'login.html';
+      } catch (err) {
+        showError('Erreur lors de l\'activation : ' + err.message);
+      } finally {
+        btn.disabled = false;
+        document.getElementById('spinner-submit').style.display = 'none';
+        document.getElementById('btn-submit-label').textContent = 'Créer mon compte';
+      }
+    }
+  </script>
+
+</body>
+</html>

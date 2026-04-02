@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion des accès - Portail Amicale</title>
+  <link rel="stylesheet" href="../../CSS/style.css">
+  <style>
+    .add-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+    @media (max-width: 600px) { .add-grid { grid-template-columns: 1fr 1fr; } }
+
+    .user-cell { display: flex; align-items: center; gap: 10px; }
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff; font-weight: 700; font-size: .85rem;
+      display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .user-name  { font-weight: 600; }
+    .user-email { font-size: .78rem; color: var(--muted); }
+
+    .role-select {
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: .82rem;
+      background: var(--bg);
+      color: var(--text);
+      cursor: pointer;
+    }
+    .role-select:focus { outline: none; border-color: var(--primary); }
+
+    .actif-badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 99px;
+      font-size: .75rem;
+      font-weight: 700;
+    }
+    .actif-badge.actif   { background: rgba(74,140,92,.12); color: var(--accent-d); border: 1px solid rgba(74,140,92,.25); }
+    .actif-badge.inactif { background: rgba(192,57,43,.1);  color: var(--danger);   border: 1px solid rgba(192,57,43,.2); }
+
+    .btn-toggle {
+      border: none; padding: 6px 12px; border-radius: 7px;
+      font-size: .78rem; font-weight: 600; cursor: pointer;
+      transition: background .15s; margin: 2px;
+      background: rgba(74,140,92,.1); color: var(--accent-d);
+    }
+    .btn-toggle:hover { background: rgba(74,140,92,.2); }
+
+    .count-badge {
+      background: var(--primary); color: #fff;
+      font-size: .72rem; font-weight: 700;
+      padding: 2px 9px; border-radius: 99px;
+    }
+
+    .notice-inscription {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: rgba(74,140,92,.08);
+      border-left: 4px solid var(--accent);
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: .82rem;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="site-header">
+    <img src="/Images/logo.png" alt="Logo Amicale" class="header-logo" onerror="this.style.display='none'">
+    <div class="header-title">
+      <div class="title-main">Portail Amicale</div>
+      <div class="title-sub">Gestion des prêts de matériel</div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-info-name" id="user-name">...</div>
+          <div class="user-info-role" id="user-role"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Déconnexion</button>
+    </div>
+  </header>
+
+  <nav class="breadcrumb">
+    <a href="../accueil.html">🏠 Accueil</a>
+  </nav>
+
+  <main>
+    <div class="page-heading">
+      <div class="icon-wrap">👥</div>
+      <div>
+        <h1>Gestion des accès</h1>
+        <p>Autoriser, modifier les rôles ou désactiver des utilisateurs</p>
+      </div>
+    </div>
+
+    <!-- Ajout -->
+    <div class="card">
+      <div class="card-header"><h2>➕ Autoriser un nouvel utilisateur</h2></div>
+      <div class="card-body">
+
+        <div class="notice-inscription">
+          ℹ️ <div>L'utilisateur recevra un email l'invitant à se connecter au portail et à créer son mot de passe.</div>
+        </div>
+
+        <form id="add-user-form">
+          <div class="add-grid">
+            <div class="field">
+              <label>Nom complet</label>
+              <input type="text" id="nom" placeholder="Jean Dupont" required>
+            </div>
+            <div class="field">
+              <label>Adresse email</label>
+              <input type="email" id="email" placeholder="jean@exemple.fr" required>
+            </div>
+            <div class="field">
+              <label>Rôle</label>
+              <select id="role">
+                <option value="utilisateur">👤 Utilisateur</option>
+                <option value="gestionnaire">🔧 Gestionnaire</option>
+                <option value="admin">🛡 Admin</option>
+                <option value="super_admin">👑 Super Admin</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-top:16px;">
+            <button type="submit" class="btn-accent">✅ Autoriser l'accès</button>
+          </div>
+        </form>
+      </div>
+    </div>
+    <div style="padding: 12px 16px; font-size: 1rem; color: var(--muted); border-bottom: 1px solid var(--border);">
+  ℹ️ Il doit toujours rester au moins un super admin, un admin et un gestionnaire actifs.
+</div>
+
+    <!-- Liste -->
+    <div class="card">
+      <div class="card-header">
+        <h2>📋 Utilisateurs</h2>
+        <span class="count-badge" id="count-badge">0</span>
+        <input type="text" id="recherche" placeholder="🔍 Rechercher par nom..." 
+        oninput="filtrerUtilisateurs()"
+        style="padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+        font-size: .85rem; background: var(--bg); color: var(--text); margin-left: 12px;">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Utilisateur</th>
+              <th class="center">Rôle</th>
+              <th class="center">Statut</th>
+              <th class="center">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="user-table"></tbody>
+        </table>
+        <div class="empty-state" id="empty-state" style="display:none;">
+          <span class="empty-icon">👥</span>
+          <p>Aucun utilisateur.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 Amicale des Sapeurs-Pompiers de Saint-Avold — Contact | Mentions légales</footer>
+  <div class="toast" id="toast"></div>
+
+  <script src="../../js/supabase.js"></script>
+  <script>
+    const currentUser = requireAuthFn(isAdmin);
+    if (currentUser) {
+      const initials = currentUser.nom.trim().split(' ').map(p => p[0]).join('').substring(0,2).toUpperCase();
+      document.getElementById('user-avatar').textContent = initials;
+      document.getElementById('user-name').textContent   = currentUser.nom;
+      document.getElementById('user-role').textContent   = getRoleLabel(currentUser.role);
+    }
+
+    const tableBody  = document.getElementById('user-table');
+    const countBadge = document.getElementById('count-badge');
+    const emptyState = document.getElementById('empty-state');
+    const toast      = document.getElementById('toast');
+
+    function showToast(msg, type = 'success') {
+      toast.textContent = msg;
+      toast.className = 'toast' + (type === 'error' ? ' error' : '');
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function ini(nom) {
+      return nom.trim().split(' ').map(p => p[0]).join('').substring(0, 2).toUpperCase();
+    }
+
+    let users = [];
+
+    async function loadUsers() {
+      try {
+        users = await getUtilisateurs();
+        renderTable();
+      } catch (err) {
+        showToast('❌ Erreur chargement : ' + err.message, 'error');
+      }
+    }
+
+    function renderTable() {
+      tableBody.innerHTML = '';
+      countBadge.textContent = users.length;
+      emptyState.style.display = users.length === 0 ? 'block' : 'none';
+      const adminCount      = users.filter(u => u.role === 'admin').length;
+      const superAdminCount = users.filter(u => u.role === 'super_admin').length;
+
+      const gestionnaireCount = users.filter(u => u.role === 'gestionnaire').length;
+const usersTries = [...users].sort((a, b) => {
+  if (ROLE_NIVEAU[b.role] !== ROLE_NIVEAU[a.role]) {
+    return ROLE_NIVEAU[b.role] - ROLE_NIVEAU[a.role];
+  }
+  return a.nom.localeCompare(b.nom, 'fr');
+});
+usersTries.forEach(user => {
+        const isLastAdmin = (user.role === 'admin' && adminCount === 1) ||
+                    (user.role === 'super_admin' && superAdminCount === 1) ||
+                    (user.role === 'gestionnaire' && gestionnaireCount === 1);
+        const isMe = currentUser && String(user.id) === String(currentUser.id);
+        const inscriptionComplete = user.actif;
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <div class="user-cell">
+              <div class="avatar">${ini(user.nom)}</div>
+              <div>
+                <div class="user-name">${user.nom} ${isMe ? '<span style="font-size:.7rem;color:var(--primary);">(vous)</span>' : ''}</div>
+                <div class="user-email">${user.mail}</div>
+                ${!inscriptionComplete ? '<div style="font-size:.72rem;color:var(--primary);margin-top:2px;">⏳ En attente d\'inscription</div>' : ''}
+              </div>
+            </div>
+          </td>
+          <td class="center">
+            <select class="role-select" onchange="changeRole(${user.id}, this.value)"
+  ${isLastAdmin ? 'disabled title="Dernier admin"' : ''}>
+  <option value="utilisateur"  ${user.role === 'utilisateur'  ? 'selected' : ''}>👤 Utilisateur</option>
+  <option value="gestionnaire" ${user.role === 'gestionnaire' ? 'selected' : ''}>🔧 Gestionnaire</option>
+  <option value="admin"        ${user.role === 'admin'        ? 'selected' : ''}>🛡 Admin</option>
+  <option value="super_admin"  ${user.role === 'super_admin'  ? 'selected' : ''}
+    ${!isSuperAdmin(currentUser) ? 'disabled style="display:none"' : ''}>👑 Super Admin</option>
+</select>
+          </td>
+          <td class="center">
+            <span class="actif-badge ${user.actif ? 'actif' : 'inactif'}">
+              ${user.actif ? '✅ Actif' : '⛔ Inactif'}
+            </span>
+          </td>
+          <td class="center">
+            <button class="btn-toggle" onclick="toggleActif(${user.id}, ${user.actif})">
+              ${user.actif ? '⛔ Désactiver' : '✅ Activer'}
+            </button>
+            <button class="btn-danger"
+              onclick="deleteUser(${user.id}, '${user.nom.replace(/'/g, "\\'")}')"
+              ${isLastAdmin || isMe ? 'disabled title="Impossible"' : ''}>
+              🗑 Supprimer
+            </button>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+    function filtrerUtilisateurs() {
+    const recherche = document.getElementById('recherche').value.toLowerCase();
+    document.querySelectorAll('#user-table tr').forEach(tr => {
+    const nom = tr.querySelector('.user-name')?.textContent.toLowerCase() || '';
+    tr.style.display = nom.includes(recherche) ? '' : 'none';
+  });
+}
+
+    async function changeRole(id, newRole) {
+  const adminCount        = users.filter(u => u.role === 'admin').length;
+  const superAdminCount   = users.filter(u => u.role === 'super_admin').length;
+  const gestionnaireCount = users.filter(u => u.role === 'gestionnaire').length;
+  const user = users.find(u => u.id === id);
+      if (user.role === 'gestionnaire' && gestionnaireCount === 1 && newRole !== 'gestionnaire') {
+       showToast('⚠ Impossible : il doit rester au moins un gestionnaire.', 'error');
+       await loadUsers(); return;
+      }
+      if (user.role === 'admin' && adminCount === 1 && newRole !== 'admin') {
+        showToast('⚠ Impossible de retirer le rôle du dernier admin.', 'error');
+        await loadUsers(); return;
+      }
+      if (user.role === 'super_admin' && superAdminCount === 1 && newRole !== 'super_admin') {
+        showToast('⚠ Impossible de retirer le rôle du dernier super admin.', 'error');
+        await loadUsers(); return;
+      }
+      try {
+        await modifierRoleUtilisateur(id, newRole);
+        await loadUsers();
+        showToast('✅ Rôle mis à jour.');
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    async function toggleActif(id, actifActuel) {
+  const user = users.find(u => u.id === id);
+
+  // Protection : ne pas désactiver le dernier actif d'un rôle supérieur
+  if (actifActuel) {
+    const actifsMemRole = users.filter(u => u.role === user.role && u.actif).length;
+    if (actifsMemRole === 1 && ['super_admin', 'admin', 'gestionnaire'].includes(user.role)) {
+      showToast(`⚠ Impossible : il doit rester au moins un ${getRoleLabel(user.role)} actif.`, 'error');
+      return;
+    }
+  }
+  // Protection : un admin ne peut pas désactiver un super_admin
+if (isAdmin(currentUser) && !isSuperAdmin(currentUser)) {
+  if (user.role === 'super_admin') {
+    showToast('⚠ Vous n\'êtes pas autorisé à désactiver ce compte.', 'error');
+    return;
+  }
+}
+
+  // Protection : un gestionnaire ne peut pas désactiver un rôle supérieur
+  if (isGestionnaire(currentUser) && !isAdmin(currentUser)) {
+    if (['admin', 'super_admin'].includes(user.role)) {
+      showToast('⚠ Vous n\'êtes pas autorisé à désactiver ce compte.', 'error');
+      return;
+    }
+  }
+
+  try {
+    await supabaseRequest(`utilisateurs?id=eq.${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ actif: !actifActuel })
+    });
+    await loadUsers();
+    showToast(actifActuel ? '⛔ Utilisateur désactivé.' : '✅ Utilisateur activé.');
+  } catch (err) {
+    showToast('❌ Erreur : ' + err.message, 'error');
+  }
+}
+
+    async function deleteUser(id, nom) {
+      if (!confirm(`Supprimer définitivement "${nom}" ?`)) return;
+      try {
+        await supprimerUtilisateur(id);
+        await loadUsers();
+        showToast(`🗑 "${nom}" supprimé.`);
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    }
+
+    document.getElementById('add-user-form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const nom  = document.getElementById('nom').value.trim();
+      const mail = document.getElementById('email').value.trim();
+      const role = document.getElementById('role').value;
+
+      if (users.find(u => u.mail === mail)) {
+        showToast('⚠ Cet email est déjà utilisé.', 'error');
+        return;
+      }
+      try {
+        // Créer compte sans mot de passe, inactif jusqu'à inscription
+        await ajouterUtilisateur(nom, mail, null, role);
+        await loadUsers();
+        e.target.reset();
+        showToast(`✅ Accès autorisé pour "${nom}". Il peut maintenant s'inscrire.`);
+      } catch (err) {
+        showToast('❌ Erreur : ' + err.message, 'error');
+      }
+    });
+
+    loadUsers();
+    if (!isSuperAdmin(currentUser)) {
+      document.querySelector('#role option[value="super_admin"]').style.display = 'none';
+    }
+  </script>
+
+</body>
+</html>

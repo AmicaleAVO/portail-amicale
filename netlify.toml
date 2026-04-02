@@ -1,0 +1,5 @@
+[functions]
+  directory = "netlify/functions"
+
+[build]
+  environment = { SECRETS_SCAN_OMIT_PATHS = "js/supabase.js,pages/admin/demandes_acces_user.html,pages/membres/demande_acces.html,pages/admin/gestion_locations.html,pages/admin/gestion_consommables.html" }
