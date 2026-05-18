@@ -220,36 +220,23 @@
 
       try {
         // Vérifier si cet email existe déjà
-        const existing = await supabaseRequest(
-          'utilisateurs?mail=eq.' + encodeURIComponent(email) + '&select=id,statut,actif'
-        );
+const existing = await rpcRequest('verifier_email_existant', { p_mail: email });
 
-        if (existing && existing.length > 0) {
-          const u = existing[0];
-          if (u.actif) {
-            showError('Un compte existe déjà avec cet email. Rendez-vous sur la page de connexion.');
-          } else if (u.statut === 'en_attente') {
-            showError('Une demande est déjà en cours pour cet email. Veuillez patienter.');
-          } else if (u.statut === 'approuve') {
-            showError('Cet email a été approuvé. Rendez-vous sur la page de finalisation d\'inscription.');
-          } else if (u.statut === 'refuse') {
-            showError('Votre demande a été refusée. Contactez un administrateur pour plus d\'informations.');
-          }
-          return;
-        }
+if (!existing || existing.erreur !== 'introuvable') {
+  if (existing.actif) {
+    showError('Un compte existe déjà avec cet email. Rendez-vous sur la page de connexion.');
+  } else if (existing.statut === 'en_attente') {
+    showError('Une demande est déjà en cours pour cet email. Veuillez patienter.');
+  } else if (existing.statut === 'approuve') {
+    showError('Cet email a été approuvé. Rendez-vous sur la page de finalisation d\'inscription.');
+  } else if (existing.statut === 'refuse') {
+    showError('Votre demande a été refusée. Contactez un administrateur pour plus d\'informations.');
+  }
+  return;
+}
 
-        // Créer la demande dans Supabase
-        await supabaseRequest('utilisateurs', {
-          method: 'POST',
-          body: JSON.stringify({
-            nom:         prenom + ' ' + nom,
-            mail:        email,
-            mot_de_passe: null,
-            role:        'utilisateur',
-            actif:       false,
-            statut:      'en_attente'
-          })
-        });
+// Créer la demande dans Supabase
+await rpcRequest('creer_demande_acces', { p_nom: prenom + ' ' + nom, p_mail: email });
 
         // Envoyer email aux gestionnaires
 try {

@@ -269,8 +269,7 @@
       document.getElementById('card-locations').appendChild(badge);
     }
   });
-  supabaseRequest('utilisateurs?statut=eq.en_attente&actif=eq.false&select=id').then(function(data) {
-  var count = data ? data.length : 0;
+  rpcRequest('compter_demandes_en_attente', {}).then(function(count) {
   if (count > 0) {
     var badge = document.createElement('div');
     badge.className = 'badge-count';

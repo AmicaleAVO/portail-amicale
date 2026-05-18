@@ -203,16 +203,12 @@
       document.getElementById('btn-verifier-label').textContent = 'Vérification...';
 
       try {
-        const results = await supabaseRequest(
-          'utilisateurs?mail=eq.' + encodeURIComponent(email) + '&select=id,nom,mot_de_passe,actif,statut'
-        );
+        const u = await rpcRequest('verifier_email_inscription', { p_mail: email });
 
-        if (!results || results.length === 0) {
-          showError('Aucune demande trouvée pour cet email. Avez-vous bien fait une demande d\'accès ?');
-          return;
-        }
-
-        const u = results[0];
+if (!u || u.erreur === 'introuvable') {
+  showError('Aucune demande trouvée pour cet email. Avez-vous bien fait une demande d\'accès ?');
+  return;
+}
 
         if (u.statut === 'en_attente') {
           showError('Votre demande est en cours d\'examen. Vous serez contacté par email une fois approuvée.');
@@ -292,10 +288,7 @@
         // ✅ Hash du mot de passe avant enregistrement
         const hash = await hashPassword(pwd);
 
-        await supabaseRequest('utilisateurs?id=eq.' + utilisateurTrouve.id, {
-          method: 'PATCH',
-          body: JSON.stringify({ mot_de_passe: hash, actif: true })
-        });
+        await rpcRequest('finaliser_inscription', { p_id: utilisateurTrouve.id, p_hash: hash });
 
         sessionStorage.setItem('register_success', '1');
         window.location.href = 'login.html';
