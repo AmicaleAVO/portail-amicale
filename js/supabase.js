@@ -205,23 +205,29 @@ if (getSession()) majActivite();
 // ============================================================
 
 async function login(mail, motDePasse) {
-  // Hash du mot de passe saisi avant comparaison
   const hash = await hashPassword(motDePasse);
 
-  const results = await supabaseRequest(
-    `utilisateurs?mail=eq.${encodeURIComponent(mail)}&mot_de_passe=eq.${encodeURIComponent(hash)}&actif=eq.true&select=id,nom,mail,role`
+  const response = await fetch(
+    `${SUPABASE_URL}/rest/v1/rpc/login_utilisateur`,
+    {
+      method: 'POST',
+      headers: {
+        'apikey':       SUPABASE_ANON,
+        'Authorization': `Bearer ${SUPABASE_ANON}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ p_mail: mail, p_hash: hash })
+    }
   );
-  if (!results || results.length === 0) {
-    throw new Error('Email ou mot de passe incorrect, ou compte inactif. Veuillez contacter un membre du comité ');
-  }
-  const user = results[0];
-  setSession(user);
-  return user;
-}
 
-function logout() {
-  clearSession();
-  window.location.href = '/pages/membres/login.html';
+  const data = await response.json();
+
+  if (!response.ok || data?.erreur) {
+    throw new Error(data?.erreur || 'Erreur de connexion. Réessayez.');
+  }
+
+  setSession(data);
+  return data;
 }
 
 // ============================================================
