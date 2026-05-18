@@ -77,6 +77,25 @@ async function supabaseRequest(path, options = {}) {
   return response.json();
 }
 
+// ── Fonction utilitaire : appel RPC Supabase ─────────────────
+async function rpcRequest(nomFonction, params = {}) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${nomFonction}`, {
+    method: 'POST',
+    headers: {
+      'apikey':        SUPABASE_ANON,
+      'Authorization': `Bearer ${SUPABASE_ANON}`,
+      'Content-Type':  'application/json'
+    },
+    body: JSON.stringify(params)
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || `Erreur ${response.status}`);
+  }
+  if (response.status === 204) return null;
+  return response.json();
+}
+
 // ============================================================
 //  SESSION UTILISATEUR
 // ============================================================
@@ -141,7 +160,6 @@ function verifierInactivite() {
   if (Date.now() - derniere > INACTIVITE_MAX) {
     clearSession();
     sessionStorage.removeItem(INACTIVITE_KEY);
-    // Attendre que le DOM soit prêt avant d'afficher le popup
     if (document.body) {
       afficherPopupExpiration();
     } else {
@@ -192,7 +210,7 @@ verifierInactivite();
 setInterval(verifierInactivite, 60 * 1000);
 
 // Écouter les actions utilisateur
-['click', 'keydown', 'mousemove','touchstart', 'scroll'].forEach(function(event) {
+['click', 'keydown', 'mousemove', 'touchstart', 'scroll'].forEach(function(event) {
   document.addEventListener(event, majActivite, { passive: true });
 });
 
@@ -206,58 +224,40 @@ if (getSession()) majActivite();
 
 async function login(mail, motDePasse) {
   const hash = await hashPassword(motDePasse);
-
-  const response = await fetch(
-    `${SUPABASE_URL}/rest/v1/rpc/login_utilisateur`,
-    {
-      method: 'POST',
-      headers: {
-        'apikey':       SUPABASE_ANON,
-        'Authorization': `Bearer ${SUPABASE_ANON}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ p_mail: mail, p_hash: hash })
-    }
-  );
-
-  const data = await response.json();
-
-  if (!response.ok || data?.erreur) {
-    throw new Error(data?.erreur || 'Erreur de connexion. Réessayez.');
-  }
-
+  const data = await rpcRequest('login_utilisateur', { p_mail: mail, p_hash: hash });
+  if (data?.erreur) throw new Error(data.erreur);
   setSession(data);
   return data;
 }
 
+function logout() {
+  clearSession();
+  window.location.href = '/pages/membres/login.html';
+}
+
 // ============================================================
-//  UTILISATEURS
+//  UTILISATEURS — toutes les opérations via RPC (RLS actif)
 // ============================================================
 
 async function getUtilisateurs() {
-  return supabaseRequest('utilisateurs?select=id,nom,mail,role,actif,created_at&order=created_at.asc');
+  const data = await rpcRequest('get_utilisateurs');
+  return data || [];
 }
 
 async function ajouterUtilisateur(nom, mail, motDePasse, role) {
-  // Hash du mot de passe avant enregistrement
-  const hash = await hashPassword(motDePasse);
-  return supabaseRequest('utilisateurs', {
-    method: 'POST',
-    body: JSON.stringify({ nom, mail, mot_de_passe: hash, role, actif: true })
-  });
+  return rpcRequest('ajouter_utilisateur', { p_nom: nom, p_mail: mail, p_role: role });
 }
 
 async function modifierRoleUtilisateur(id, role) {
-  return supabaseRequest(`utilisateurs?id=eq.${id}`, {
-    method: 'PATCH',
-    body: JSON.stringify({ role })
-  });
+  return rpcRequest('modifier_role_utilisateur', { p_id: id, p_role: role });
+}
+
+async function toggleActifUtilisateur(id, actif) {
+  return rpcRequest('toggle_actif_utilisateur', { p_id: id, p_actif: actif });
 }
 
 async function supprimerUtilisateur(id) {
-  return supabaseRequest(`utilisateurs?id=eq.${id}`, {
-    method: 'DELETE'
-  });
+  return rpcRequest('supprimer_utilisateur', { p_id: id });
 }
 
 // ============================================================

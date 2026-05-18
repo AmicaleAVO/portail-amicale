@@ -337,10 +337,7 @@ if (isAdmin(currentUser) && !isSuperAdmin(currentUser)) {
   }
 
   try {
-    await supabaseRequest(`utilisateurs?id=eq.${id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({ actif: !actifActuel })
-    });
+    await toggleActifUtilisateur(id, !actifActuel);
     await loadUsers();
     showToast(actifActuel ? '⛔ Utilisateur désactivé.' : '✅ Utilisateur activé.');
   } catch (err) {
